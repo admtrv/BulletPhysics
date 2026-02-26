@@ -8,6 +8,7 @@
 #include "ImpactResult.h"
 #include "collision/Collider.h"
 #include "dynamics/PhysicsBody.h"
+#include "Constants.h"
 #include "collision/BoxCollider.h"
 #include "math/Angles.h"
 #include "math/Constants.h"
@@ -27,13 +28,13 @@ public:
     static ImpactResult resolve(const dynamics::projectile::IProjectileBody& projectile, const CollisionInfo& info, const Collider& collider);
 
 private:
-    // critical ricochet angle (radians), Zukas (1990)
-    static float criticalAngle(float bhn, float diameter, float speed);
+    // critical grazing angle for ricochet (radians from surface), Wijk
+    static float criticalAngle(float mass, float speed, float diameter, float yieldStrength);
 
     // penetration depth (meters), energy-based model
-    static float maxPenetration(float mass, float speed, float diameter, float bhn);
+    static float maxPenetrationDepth(float mass, float speed, float area, float penetrationResistance);
 
-    // residual velocity after penetration, Thompson-Lambert energy balance
+    // residual velocity after penetration, energy-based model
     static float residualSpeed(float speed, float thickness, float maxPenetration);
 
     // compute path length of ray through collider along velocity direction

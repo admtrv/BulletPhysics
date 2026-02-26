@@ -5,6 +5,7 @@
 #pragma once
 
 #include "math/Vec3.h"
+#include "math/Constants.h"
 
 namespace BulletPhysics {
 namespace constants {
@@ -38,7 +39,8 @@ inline constexpr double EARTH_SEMI_MINOR_AXIS = 6356752.314245;         // m (b,
 inline constexpr double EARTH_ECCENTRICITY_SQUARED = 6.69437999014e-3;  // e^2
 
 // default projectile constants
-static constexpr float DEFAULT_AREA = 0.001f;     // m^2
+static constexpr float DEFAULT_DIAMETER = 0.00762f;
+static constexpr float DEFAULT_AREA = math::constants::PI * DEFAULT_DIAMETER * DEFAULT_DIAMETER / 4;     // m^2
 static constexpr float DEFAULT_CD = 0.3f;
 static constexpr float DEFAULT_C_M_ALPHA = 4.0f;
 static constexpr float DEFAULT_C_L_ALPHA = 0.10f;

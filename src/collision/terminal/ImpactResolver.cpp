@@ -8,32 +8,61 @@ namespace BulletPhysics {
 namespace collision {
 namespace terminal {
 
-// reference constants for critical angle formula
-static constexpr float REF_DIAMETER = 0.00762f;  // 7.62mm reference caliber
-static constexpr float REF_SPEED = 800.0f;       // m/s reference speed
-static constexpr float REF_BHN = 300.0f;         // reference Brinell hardness (RHA)
+// alpha_crit + theta_crit = pi / 2
+// alpha_crit - grazing angle, angle relative to surface
+// theta_crit - angle relative to normal
 
-float ImpactResolver::criticalAngle(float bhn, float diameter, float speed)
+float ImpactResolver::criticalAngle(float mass, float speed, float diameter, float yieldStrength)
 {
-    // Zukas (1990): theta_crit ~ 2 * (BHN/300)^0.25 * (d_ref/d)^0.33 * (v_ref/v)^0.2
-    float angle = 2.0f * std::pow(bhn / REF_BHN, 0.25f) * std::pow(REF_DIAMETER / std::max(diameter, 1e-6f), 0.33f) * std::pow(REF_SPEED / std::max(speed, 1e-3f), 0.2f);
+    // tan^3(theta_crit) + tan(theta_crit) = 8 * m * v^2 / (3 * sigma * pi * D^3)
 
-    float rad = math::deg2rad(angle);
-    return std::clamp(rad, 0.0f, math::constants::PI * 0.5f);
+    float d3 = diameter * diameter * diameter;
+    float denom = 3.0f * yieldStrength * math::constants::PI * d3;
+
+    if (denom < 1e-12f)
+        return 0.0f;
+
+    float rhs = 8.0f * mass * speed * speed / denom;
+
+    // solve tan^3(t) + t = rhs for t = tan(theta) via Newton's
+    float t = std::cbrt(rhs);   // initial guess
+    for (int i = 0; i < 8; ++i)
+    {
+        float f = t * t * t + t - rhs;
+        float df = 3.0f * t * t + 1.0f;
+
+        t -= f / df;
+
+        if (t < 0.0f)
+            t = 0.0f;
+    }
+    float thetaCritical = std::atan(t);
+
+    // convert to grazing angle
+    float alphaCritical = math::constants::PI * 0.5f - thetaCritical;
+
+    return std::clamp(alphaCritical, 0.0f, math::constants::PI * 0.5f);
 }
 
-float ImpactResolver::maxPenetration(float mass, float speed, float diameter, float bhn)
+float ImpactResolver::maxPenetrationDepth(float mass, float speed, float area, float penetrationResistance)
 {
     // energy-based penetration model:
-    // kinetic energy E_k = 0.5 * m * v^2
-    // resisting force F = BHN * 1e6 * pi/4 * d^2
-    //   (BHN in MPa approximation for penetration resistance)
-    // penetration depth e = E_k / F
+    //
+    // the projectile pushes through the material like a cylinder.
+    // the material resists with constant pressure P (penetrationResistance, Pa)
+    // acting on the projectile cross-section area A.
+    //
+    // resisting force:  F = P * A
+    // work to penetrate depth e:  W = F * e
+    // projectile stops when all kinetic energy is spent:  E_k = W
+    //
+    //   0.5 * m * v^2 = P * A * e
+    //   e = (0.5 * m * v^2) / (P * A)
 
-    float area = math::constants::PI * 0.25f * diameter * diameter;
-    float resistForce = bhn * 1e6f * area;
+    float resistForce = penetrationResistance * area;
 
-    if (resistForce < 1e-9f) return 1e6f;
+    if (resistForce < 1e-9f)
+        return 1e6f;
 
     float kineticEnergy = 0.5f * mass * speed * speed;
     return kineticEnergy / resistForce;
@@ -41,13 +70,22 @@ float ImpactResolver::maxPenetration(float mass, float speed, float diameter, fl
 
 float ImpactResolver::residualSpeed(float speed, float thickness, float maxPen)
 {
-    // v_res = v * sqrt(1 - (t/e_max)^2)
-    if (maxPen < 1e-9f) return 0.0f;
+    // energy spent traversing thickness t:  E_lost = F * t
+    // total energy to stop projectile:      E_total = F * e_max = 0.5 * m * v^2
+    // residual energy after penetration:    E_res = E_total - E_lost = F * (e_max - t)
+    //
+    // from E_res = 0.5 * m * v_res^2 and E_total = 0.5 * m * v^2:
+    // v_res^2 / v^2 = (e_max - t) / e_max = 1 - t / e_max
+    // v_res = v * sqrt(1 - t / e_max)
+
+    if (maxPen < 1e-9f)
+        return 0.0f;
 
     float ratio = thickness / maxPen;
-    if (ratio >= 1.0f) return 0.0f;
+    if (ratio >= 1.0f)
+        return 0.0f;
 
-    return speed * std::sqrt(1.0f - ratio * ratio);
+    return speed * std::sqrt(1.0f - ratio);
 }
 
 float ImpactResolver::computeEffectiveThickness(const math::Vec3& position, const math::Vec3& velocity, const Collider* collider)
@@ -83,7 +121,10 @@ float ImpactResolver::computeEffectiveThickness(const math::Vec3& position, cons
     {
         float t1 = (center.x - halfSize.x - position.x) / dir.x;
         float t2 = (center.x + halfSize.x - position.x) / dir.x;
-        if (t1 > t2) std::swap(t1, t2);
+
+        if (t1 > t2)
+            std::swap(t1, t2);
+
         tMin = std::max(tMin, t1);
         tMax = std::min(tMax, t2);
     }
@@ -98,7 +139,10 @@ float ImpactResolver::computeEffectiveThickness(const math::Vec3& position, cons
     {
         float t1 = (center.y - halfSize.y - position.y) / dir.y;
         float t2 = (center.y + halfSize.y - position.y) / dir.y;
-        if (t1 > t2) std::swap(t1, t2);
+
+        if (t1 > t2)
+            std::swap(t1, t2);
+
         tMin = std::max(tMin, t1);
         tMax = std::min(tMax, t2);
     }
@@ -113,7 +157,10 @@ float ImpactResolver::computeEffectiveThickness(const math::Vec3& position, cons
     {
         float t1 = (center.z - halfSize.z - position.z) / dir.z;
         float t2 = (center.z + halfSize.z - position.z) / dir.z;
-        if (t1 > t2) std::swap(t1, t2);
+
+        if (t1 > t2)
+            std::swap(t1, t2);
+
         tMin = std::max(tMin, t1);
         tMax = std::min(tMax, t2);
     }
@@ -151,8 +198,11 @@ ImpactResult ImpactResolver::resolve(const dynamics::projectile::IProjectileBody
         return {ImpactOutcome::Embed, {0.0f, 0.0f, 0.0f}, 0.0f, 0.0f};
     }
 
-    float diameter = specs.diameter.value_or(REF_DIAMETER);
+    float diameter = specs.diameter.value_or(constants::DEFAULT_DIAMETER);
+    float area = specs.area.value_or(constants::DEFAULT_AREA);
     float mass = specs.mass;
+
+    // E_k = 0.5 * m * v^2
     float kineticEnergy = 0.5f * mass * speed * speed;
 
     // surface normal
@@ -167,13 +217,55 @@ ImpactResult ImpactResolver::resolve(const dynamics::projectile::IProjectileBody
     float grazingAngle = std::asin(std::clamp(std::abs(vDotN) / speed, 0.0f, 1.0f));
 
     // ricochet check
-    float thetaCrit = criticalAngle(material.brinellHardness, diameter, speed);
-
-    if (grazingAngle < thetaCrit)
+    float alphaAngle = criticalAngle(mass, speed, diameter, material.yieldStrength);
+    if (grazingAngle < alphaAngle)
     {
-        math::Vec3 residualVelocity = vTangent + normal * (-vDotN * material.restitution);
-        float resSpeed = residualVelocity.length();
-        float energyAbsorbed = kineticEnergy - 0.5f * mass * resSpeed * resSpeed;
+        // step 1: classical mechanics: restitution on normal + Coulomb friction on tangential
+        //
+        // normal component: reflected with coefficient of restitution e
+        //   v_n' = -e * v_n
+        //
+        // tangential component: Coulomb friction impulse
+        //   |Δv_t| ≤ μ * (1 + e) * |v_n|
+        //   friction cannot reverse tangential direction, only reduce it
+
+        float vNormalMag = std::abs(vDotN);
+        float vTangentMag = vTangent.length();
+
+        // reflected normal
+        math::Vec3 reflectedNormal = normal * (-vDotN * material.restitutionN);
+
+        // Coulomb friction: max tangential impulse change
+        float maxFrictionDv = material.frictionT * (1.0f + material.restitutionN) * vNormalMag;
+        float newTangentMag = std::max(vTangentMag - maxFrictionDv, 0.0f);
+
+        math::Vec3 tangentDir = (vTangentMag > 1e-9f) ? vTangent * (1.0f / vTangentMag) : math::Vec3{0.0f, 0.0f, 0.0f};
+        math::Vec3 reflectedTangent = tangentDir * newTangentMag;
+
+        math::Vec3 classicalVelocity = reflectedTangent + reflectedNormal;
+        float classicalSpeed = classicalVelocity.length();
+        float classicalEnergy = 0.5f * mass * classicalSpeed * classicalSpeed;
+
+        // step 2: empirical correction: apply only "missing" losses
+        //
+        // experimental data gives target energy loss fraction for each material.
+        // if classical mechanics already removed enough energy, no correction needed.
+        // otherwise, scale velocity down to match empirical target.
+
+        float targetEnergy = kineticEnergy * (1.0f - material.empiricalEnergyLoss);
+        math::Vec3 residualVelocity = classicalVelocity;
+
+        if (classicalEnergy > targetEnergy && classicalSpeed > 1e-9f)
+        {
+            // scale velocity to match empirical energy target
+            // E_target = 0.5 * m * v_target^2
+            // v_target = v_classical * sqrt(E_target / E_classical)
+            float correction = std::sqrt(targetEnergy / classicalEnergy);
+            residualVelocity = classicalVelocity * correction;
+        }
+
+        float residualSpeed = residualVelocity.length();
+        float energyAbsorbed = kineticEnergy - 0.5f * mass * residualSpeed * residualSpeed;
 
         return {ImpactOutcome::Ricochet, residualVelocity, std::max(energyAbsorbed, 0.0f), 0.0f};
     }
@@ -182,15 +274,15 @@ ImpactResult ImpactResolver::resolve(const dynamics::projectile::IProjectileBody
     float thickness = computeEffectiveThickness(projectile.getPosition(), velocity, &collider);
 
     // penetration calculation
-    float maxPen = maxPenetration(mass, speed, diameter, material.brinellHardness);
+    float penetrationThickness = maxPenetrationDepth(mass, speed, area, material.penetrationResistance);
 
-    if (maxPen < thickness)
+    if (penetrationThickness < thickness)
     {
-        return {ImpactOutcome::Embed, {0.0f, 0.0f, 0.0f}, kineticEnergy, maxPen};
+        return {ImpactOutcome::Embed, {0.0f, 0.0f, 0.0f}, kineticEnergy, penetrationThickness};
     }
 
     // full penetration
-    float vRes = residualSpeed(speed, thickness, maxPen);
+    float vRes = residualSpeed(speed, thickness, penetrationThickness);
     math::Vec3 direction = velocity.normalized();
     math::Vec3 residualVelocity = direction * vRes;
     float residualEnergy = 0.5f * mass * vRes * vRes;

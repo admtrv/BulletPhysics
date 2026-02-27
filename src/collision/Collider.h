@@ -33,6 +33,9 @@ public:
     virtual bool testCollision(const Collider& other, CollisionInfo& outInfo) const = 0;
     virtual bool testPoint(const math::Vec3& point) const = 0;
 
+    // ray thickness
+    virtual float computeThickness(const math::Vec3& rayOrigin, const math::Vec3& rayDir) const { return 1e6f; }
+
     void setMaterial(const terminal::Material& mat) { m_material = mat; }
     const std::optional<terminal::Material>& getMaterial() const { return m_material; }
 

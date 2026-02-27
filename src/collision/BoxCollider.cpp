@@ -107,5 +107,77 @@ bool BoxCollider::testCollisionWithGround(const GroundCollider& ground, Collisio
     return false;
 }
 
+float BoxCollider::computeThickness(const math::Vec3& rayOrigin, const math::Vec3& rayDir) const
+{
+    math::Vec3 dir = rayDir.normalized();
+    math::Vec3 halfSize = m_size * 0.5f;
+
+    // ray-AABB intersection (slab method)
+    float tMin = -1e30f;
+    float tMax = 1e30f;
+
+    // x axis
+    if (std::abs(dir.x) > 1e-9f)
+    {
+        float t1 = (m_position.x - halfSize.x - rayOrigin.x) / dir.x;
+        float t2 = (m_position.x + halfSize.x - rayOrigin.x) / dir.x;
+
+        if (t1 > t2)
+            std::swap(t1, t2);
+
+        tMin = std::max(tMin, t1);
+        tMax = std::min(tMax, t2);
+    }
+    else
+    {
+        if (rayOrigin.x < m_position.x - halfSize.x || rayOrigin.x > m_position.x + halfSize.x)
+            return 1e6f;
+    }
+
+    // y axis
+    if (std::abs(dir.y) > 1e-9f)
+    {
+        float t1 = (m_position.y - halfSize.y - rayOrigin.y) / dir.y;
+        float t2 = (m_position.y + halfSize.y - rayOrigin.y) / dir.y;
+
+        if (t1 > t2)
+            std::swap(t1, t2);
+
+        tMin = std::max(tMin, t1);
+        tMax = std::min(tMax, t2);
+    }
+    else
+    {
+        if (rayOrigin.y < m_position.y - halfSize.y || rayOrigin.y > m_position.y + halfSize.y)
+            return 1e6f;
+    }
+
+    // z axis
+    if (std::abs(dir.z) > 1e-9f)
+    {
+        float t1 = (m_position.z - halfSize.z - rayOrigin.z) / dir.z;
+        float t2 = (m_position.z + halfSize.z - rayOrigin.z) / dir.z;
+
+        if (t1 > t2)
+            std::swap(t1, t2);
+
+        tMin = std::max(tMin, t1);
+        tMax = std::min(tMax, t2);
+    }
+    else
+    {
+        if (rayOrigin.z < m_position.z - halfSize.z || rayOrigin.z > m_position.z + halfSize.z)
+            return 1e6f;
+    }
+
+    if (tMax < tMin || tMax < 0.0f)
+    {
+        return 1e6f;
+    }
+
+    float entry = std::max(tMin, 0.0f);
+    return tMax - entry;
+}
+
 } // namespace collision
 } // namespace BulletPhysics

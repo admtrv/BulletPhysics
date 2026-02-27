@@ -33,6 +33,7 @@ public:
 
     bool testCollision(const Collider& other, CollisionInfo& outInfo) const override;
     bool testPoint(const math::Vec3& point) const override;
+    float computeThickness(const math::Vec3& rayOrigin, const math::Vec3& rayDir) const override;
 
     bool testCollisionWithBox(const BoxCollider& box, CollisionInfo& outInfo) const;
     bool testCollisionWithGround(const GroundCollider& ground, CollisionInfo& outInfo) const;

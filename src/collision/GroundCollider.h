@@ -15,14 +15,14 @@ class BoxCollider;
 // represents an infinite ground plane (similar to WorldBoundaryShape2D in Godot)
 class GroundCollider : public Collider {
 public:
-    explicit GroundCollider(float groundY = 0.0f);
+    explicit GroundCollider(double groundY = 0.0);
 
     CollisionShape getShape() const override { return CollisionShape::Ground; }
     const math::Vec3& getPosition() const override { return m_position; }
     void setPosition(const math::Vec3& pos) override;
 
-    float getGroundY() const { return m_position.y; }
-    void setGroundY(float level);
+    double getGroundY() const { return m_position.y; }
+    void setGroundY(double level);
 
     bool testCollision(const Collider& other, CollisionInfo& outInfo) const override;
     bool testPoint(const math::Vec3& point) const override;

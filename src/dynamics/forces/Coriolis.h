@@ -16,7 +16,7 @@ namespace forces {
 class Coriolis : public IForce {
 public:
 
-    void apply(IPhysicsBody& body, PhysicsContext& context, float /*dt*/) override
+    void apply(IPhysicsBody& body, PhysicsContext& context, double /*dt*/) override
     {
         // requires Geographic environment
         if (!context.latitude.has_value())
@@ -32,13 +32,13 @@ public:
         // our coordinate system: x=East, y=Up, z=North
         double omegaNorth = constants::EARTH_ANGULAR_SPEED * std::cos(latitude);
         double omegaUp = constants::EARTH_ANGULAR_SPEED * std::sin(latitude);
-        math::Vec3 omega(0.0f, static_cast<float>(omegaUp), static_cast<float>(omegaNorth));
+        math::Vec3 omega(0.0, omegaUp, omegaNorth);
 
         // Coriolis acceleration: a = -2 * (omega x v)
-        math::Vec3 coriolisAccel = -2.0f * omega.cross(velocity);
+        math::Vec3 coriolisAccel = -2.0 * omega.cross(velocity);
 
         // apply force: F = m * a
-        if (body.getMass() > 0.0f)
+        if (body.getMass() > 0.0)
         {
             math::Vec3 force = coriolisAccel * body.getMass();
             body.addForce(force);

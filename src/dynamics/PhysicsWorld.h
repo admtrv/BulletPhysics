@@ -36,7 +36,7 @@ public:
     void clear();
 
     // apply all forces to physics body
-    void applyForces(IPhysicsBody& body, float dt);
+    void applyForces(IPhysicsBody& body, double dt);
 
     // getters
     forces::IForce* getForce(const std::string& name);

@@ -25,7 +25,7 @@ public:
     virtual std::unique_ptr<IPhysicsBody> clone() const = 0;
 
     // mass
-    virtual float getMass() const = 0;
+    virtual double getMass() const = 0;
 
     // position
     virtual math::Vec3 getPosition() const = 0;
@@ -52,30 +52,30 @@ struct RiflingSpecs {
     };
 
     Direction direction;    // rifling direction
-    float twistRate;        // n (calibers per turn)
+    double twistRate;        // n (calibers per turn)
 };
 
 // spin-related specifications
 struct SpinSpecs {
     // dimensional specifications
-    std::optional<float> momentOfInertia;      // I_x (kg * m^2)
+    std::optional<double> momentOfInertia;      // I_x (kg * m^2)
 
     // aerodynamic coefficients
-    float overtuningCoefficient = constants::DEFAULT_C_M_ALPHA;     // C_M_alpha
-    float liftCoefficient = constants::DEFAULT_C_L_ALPHA;           // C_L_alpha
-    float magnusCoefficient = constants::DEFAULT_C_MAG_F;           // C_mag_f
+    double overtuningCoefficient = constants::DEFAULT_C_M_ALPHA;     // C_M_alpha
+    double liftCoefficient = constants::DEFAULT_C_L_ALPHA;           // C_L_alpha
+    double magnusCoefficient = constants::DEFAULT_C_MAG_F;           // C_mag_f
 
     std::optional<RiflingSpecs> riflingSpecs;
-    std::optional<float> spinRate;              // initial spin rate (rad/s)
+    std::optional<double> spinRate;              // initial spin rate (rad/s)
 };
 
 struct ProjectileSpecs {
     // basic specifications
-    float mass;                 // kg
+    double mass;                 // kg
 
     // dimensional specifications
-    std::optional<float> area;          // m^2 (cross-sectional area)
-    std::optional<float> diameter;      // m (caliber)
+    std::optional<double> area;          // m^2 (cross-sectional area)
+    std::optional<double> diameter;      // m (caliber)
 
     // aerodynamic coefficients
     std::optional<forces::drag::DragCurveModel> dragModel;      // C_d
@@ -83,9 +83,9 @@ struct ProjectileSpecs {
     // spin-related specifications
     std::optional<SpinSpecs> spinSpecs;
 
-    static float calculateArea(float diameter);
-    static float calculateMomentOfInertiaX(float mass, float diameter);
-    static float calculateSpinRate(float velocity, float twistRate, float diameter);
+    static double calculateArea(double diameter);
+    static double calculateMomentOfInertiaX(double mass, double diameter);
+    static double calculateSpinRate(double velocity, double twistRate, double diameter);
 };
 
 // projectile interface
@@ -110,8 +110,8 @@ public:
     std::unique_ptr<IPhysicsBody> clone() const override;
 
     // mass
-    float getMass() const override { return m_mass; }
-    void setMass(float mass);
+    double getMass() const override { return m_mass; }
+    void setMass(double mass);
 
     // position
     math::Vec3 getPosition() const override { return m_position; }
@@ -120,7 +120,7 @@ public:
     // velocity
     math::Vec3 getVelocity() const override { return m_velocity; }
     void setVelocity(const math::Vec3& vel) override;
-    virtual void setVelocityFromAngles(float speed, float elevationDeg, float azimuthDeg);
+    virtual void setVelocityFromAngles(double speed, double elevationDeg, double azimuthDeg);
 
     // forces
     const math::Vec3& getAccumulatedForces() const override { return m_forces; }
@@ -128,7 +128,7 @@ public:
     void clearForces() override;
 
 private:
-    float m_mass = 1.0f;
+    double m_mass = 1.0;
     math::Vec3 m_position{};
     math::Vec3 m_velocity{};
     math::Vec3 m_forces{};
@@ -139,7 +139,7 @@ namespace projectile {
 
 class ProjectileRigidBody : public RigidBody, public IProjectileBody {
 public:
-    ProjectileRigidBody() : RigidBody(), m_specs{1.0f} {}
+    ProjectileRigidBody() : RigidBody(), m_specs{1.0} {}
     explicit ProjectileRigidBody(const ProjectileSpecs& specs);
 
     std::unique_ptr<IPhysicsBody> clone() const override;
@@ -153,12 +153,12 @@ public:
         RigidBody::setVelocity(vel);
         setInitialSpinRate(vel.length());
     }
-    void setVelocityFromAngles(float speed, float elevationDeg, float azimuthDeg) override
+    void setVelocityFromAngles(double speed, double elevationDeg, double azimuthDeg) override
     {
         RigidBody::setVelocityFromAngles(speed, elevationDeg, azimuthDeg);
         setInitialSpinRate(speed);
     }
-    void setInitialSpinRate(float velocity);
+    void setInitialSpinRate(double velocity);
 
 private:
     ProjectileSpecs m_specs;

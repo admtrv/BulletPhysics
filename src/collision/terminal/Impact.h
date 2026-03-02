@@ -17,7 +17,7 @@ namespace terminal {
 struct ImpactInfo {
     math::Vec3 normal;            // surface normal at impact point
     Material material;            // material properties of target
-    float thickness;              // m, effective thickness of obstacle along velocity direction
+    double thickness;              // m, effective thickness of obstacle along velocity direction
 };
 
 // output
@@ -32,8 +32,8 @@ struct ImpactResult {
     ImpactOutcome outcome;
 
     math::Vec3 residualVelocity;  // m/s, post-impact velocity (zero for Embed)
-    float energyAbsorbed;         // J, transferred to material
-    float penetrationDepth;       // m, how far into material
+    double energyAbsorbed;         // J, transferred to material
+    double penetrationDepth;       // m, how far into material
 };
 
 class Impact {

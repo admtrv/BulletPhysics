@@ -32,7 +32,7 @@ bool BoxCollider::testCollision(const Collider& other, CollisionInfo& outInfo) c
 
 bool BoxCollider::testPoint(const math::Vec3& point) const
 {
-    math::Vec3 half = m_size * 0.5f;
+    math::Vec3 half = m_size * 0.5;
     math::Vec3 diff = point - m_position;
 
     return std::abs(diff.x) <= half.x && std::abs(diff.y) <= half.y && std::abs(diff.z) <= half.z;
@@ -40,8 +40,8 @@ bool BoxCollider::testPoint(const math::Vec3& point) const
 
 bool BoxCollider::testCollisionWithBox(const BoxCollider& other, CollisionInfo& outInfo) const
 {
-    math::Vec3 half1 = m_size * 0.5f;
-    math::Vec3 half2 = other.m_size * 0.5f;
+    math::Vec3 half1 = m_size * 0.5;
+    math::Vec3 half2 = other.m_size * 0.5;
 
     math::Vec3 diff = other.m_position - m_position;
 
@@ -51,22 +51,22 @@ bool BoxCollider::testCollisionWithBox(const BoxCollider& other, CollisionInfo& 
     }
 
     // find axis of minimum penetration
-    float minPenetration = std::abs(diff.x) - (half1.x + half2.x);
-    outInfo.normal = diff.x > 0.0f ? math::Vec3{1.0f, 0.0f, 0.0f} : math::Vec3{-1.0f, 0.0f, 0.0f};
+    double minPenetration = std::abs(diff.x) - (half1.x + half2.x);
+    outInfo.normal = diff.x > 0.0 ? math::Vec3{1.0, 0.0, 0.0} : math::Vec3{-1.0, 0.0, 0.0};
     outInfo.penetration = -minPenetration;
 
-    float penY = std::abs(diff.y) - (half1.y + half2.y);
+    double penY = std::abs(diff.y) - (half1.y + half2.y);
     if (-penY < outInfo.penetration)
     {
         outInfo.penetration = -penY;
-        outInfo.normal = diff.y > 0.0f ? math::Vec3{0.0f, 1.0f, 0.0f} : math::Vec3{0.0f, -1.0f, 0.0f};
+        outInfo.normal = diff.y > 0.0 ? math::Vec3{0.0, 1.0, 0.0} : math::Vec3{0.0, -1.0, 0.0};
     }
 
-    float penZ = std::abs(diff.z) - (half1.z + half2.z);
+    double penZ = std::abs(diff.z) - (half1.z + half2.z);
     if (-penZ < outInfo.penetration)
     {
         outInfo.penetration = -penZ;
-        outInfo.normal = diff.z > 0.0f ? math::Vec3{0.0f, 0.0f, 1.0f} : math::Vec3{0.0f, 0.0f, -1.0f};
+        outInfo.normal = diff.z > 0.0 ? math::Vec3{0.0, 0.0, 1.0} : math::Vec3{0.0, 0.0, -1.0};
     }
 
     return true;
@@ -74,22 +74,22 @@ bool BoxCollider::testCollisionWithBox(const BoxCollider& other, CollisionInfo& 
 
 bool BoxCollider::testCollisionWithGround(const GroundCollider& ground, CollisionInfo& outInfo) const
 {
-    float groundY = ground.getGroundY();
-    math::Vec3 half = m_size * 0.5f;
+    double groundY = ground.getGroundY();
+    math::Vec3 half = m_size * 0.5;
 
     // find lowest vertex
-    float lowestY = m_position.y;
+    double lowestY = m_position.y;
 
     // project half-extents onto each axis and find y-components
     for (int i = 0; i < 8; i++)
     {
         // generate all 8 corner combinations
-        float sx = (i & 1) ? half.x : -half.x;
-        float sy = (i & 2) ? half.y : -half.y;
-        float sz = (i & 4) ? half.z : -half.z;
+        double sx = (i & 1) ? half.x : -half.x;
+        double sy = (i & 2) ? half.y : -half.y;
+        double sz = (i & 4) ? half.z : -half.z;
 
         // vertex = center + sx*axisX + sy*axisY + sz*axisZ
-        float vertexY = m_position.y + sx * m_axes[0].y + sy * m_axes[1].y + sz * m_axes[2].y;
+        double vertexY = m_position.y + sx * m_axes[0].y + sy * m_axes[1].y + sz * m_axes[2].y;
 
         if (vertexY < lowestY)
         {
@@ -99,7 +99,7 @@ bool BoxCollider::testCollisionWithGround(const GroundCollider& ground, Collisio
 
     if (lowestY < groundY)
     {
-        outInfo.normal = math::Vec3{0.0f, 1.0f, 0.0f};
+        outInfo.normal = math::Vec3{0.0, 1.0, 0.0};
         outInfo.penetration = groundY - lowestY;
         return true;
     }
@@ -107,20 +107,20 @@ bool BoxCollider::testCollisionWithGround(const GroundCollider& ground, Collisio
     return false;
 }
 
-float BoxCollider::computeThickness(const math::Vec3& rayOrigin, const math::Vec3& rayDir) const
+double BoxCollider::computeThickness(const math::Vec3& rayOrigin, const math::Vec3& rayDir) const
 {
     math::Vec3 dir = rayDir.normalized();
-    math::Vec3 halfSize = m_size * 0.5f;
+    math::Vec3 halfSize = m_size * 0.5;
 
     // ray-AABB intersection (slab method)
-    float tMin = -1e30f;
-    float tMax = 1e30f;
+    double tMin = -1e30;
+    double tMax = 1e30;
 
     // x axis
-    if (std::abs(dir.x) > 1e-9f)
+    if (std::abs(dir.x) > 1e-9)
     {
-        float t1 = (m_position.x - halfSize.x - rayOrigin.x) / dir.x;
-        float t2 = (m_position.x + halfSize.x - rayOrigin.x) / dir.x;
+        double t1 = (m_position.x - halfSize.x - rayOrigin.x) / dir.x;
+        double t2 = (m_position.x + halfSize.x - rayOrigin.x) / dir.x;
 
         if (t1 > t2)
             std::swap(t1, t2);
@@ -131,14 +131,14 @@ float BoxCollider::computeThickness(const math::Vec3& rayOrigin, const math::Vec
     else
     {
         if (rayOrigin.x < m_position.x - halfSize.x || rayOrigin.x > m_position.x + halfSize.x)
-            return 1e6f;
+            return 1e6;
     }
 
     // y axis
-    if (std::abs(dir.y) > 1e-9f)
+    if (std::abs(dir.y) > 1e-9)
     {
-        float t1 = (m_position.y - halfSize.y - rayOrigin.y) / dir.y;
-        float t2 = (m_position.y + halfSize.y - rayOrigin.y) / dir.y;
+        double t1 = (m_position.y - halfSize.y - rayOrigin.y) / dir.y;
+        double t2 = (m_position.y + halfSize.y - rayOrigin.y) / dir.y;
 
         if (t1 > t2)
             std::swap(t1, t2);
@@ -149,14 +149,14 @@ float BoxCollider::computeThickness(const math::Vec3& rayOrigin, const math::Vec
     else
     {
         if (rayOrigin.y < m_position.y - halfSize.y || rayOrigin.y > m_position.y + halfSize.y)
-            return 1e6f;
+            return 1e6;
     }
 
     // z axis
-    if (std::abs(dir.z) > 1e-9f)
+    if (std::abs(dir.z) > 1e-9)
     {
-        float t1 = (m_position.z - halfSize.z - rayOrigin.z) / dir.z;
-        float t2 = (m_position.z + halfSize.z - rayOrigin.z) / dir.z;
+        double t1 = (m_position.z - halfSize.z - rayOrigin.z) / dir.z;
+        double t2 = (m_position.z + halfSize.z - rayOrigin.z) / dir.z;
 
         if (t1 > t2)
             std::swap(t1, t2);
@@ -167,15 +167,15 @@ float BoxCollider::computeThickness(const math::Vec3& rayOrigin, const math::Vec
     else
     {
         if (rayOrigin.z < m_position.z - halfSize.z || rayOrigin.z > m_position.z + halfSize.z)
-            return 1e6f;
+            return 1e6;
     }
 
-    if (tMax < tMin || tMax < 0.0f)
+    if (tMax < tMin || tMax < 0.0)
     {
-        return 1e6f;
+        return 1e6;
     }
 
-    float entry = std::max(tMin, 0.0f);
+    double entry = std::max(tMin, 0.0);
     return tMax - entry;
 }
 

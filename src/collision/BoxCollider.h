@@ -18,7 +18,7 @@ class GroundCollider;
 // Oriented Bounding Box (OBB) collider
 class BoxCollider : public Collider {
 public:
-    explicit BoxCollider(const math::Vec3& size = math::Vec3{1.0f, 1.0f, 1.0f});
+    explicit BoxCollider(const math::Vec3& size = math::Vec3{1.0, 1.0, 1.0});
 
     CollisionShape getShape() const override { return CollisionShape::Box; }
     const math::Vec3& getPosition() const override { return m_position; }
@@ -33,7 +33,7 @@ public:
 
     bool testCollision(const Collider& other, CollisionInfo& outInfo) const override;
     bool testPoint(const math::Vec3& point) const override;
-    float computeThickness(const math::Vec3& rayOrigin, const math::Vec3& rayDir) const override;
+    double computeThickness(const math::Vec3& rayOrigin, const math::Vec3& rayDir) const override;
 
     bool testCollisionWithBox(const BoxCollider& box, CollisionInfo& outInfo) const;
     bool testCollisionWithGround(const GroundCollider& ground, CollisionInfo& outInfo) const;
@@ -42,9 +42,9 @@ private:
     math::Vec3 m_position{};
     math::Vec3 m_size;
     math::Vec3 m_axes[3] {
-        {1.0f, 0.0f, 0.0f},
-        {0.0f, 1.0f, 0.0f},
-        {0.0f, 0.0f, 1.0f}
+        {1.0, 0.0, 0.0},
+        {0.0, 1.0, 0.0},
+        {0.0, 0.0, 1.0}
     };
 
     friend class GroundCollider;

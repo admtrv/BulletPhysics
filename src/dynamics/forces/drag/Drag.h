@@ -20,7 +20,7 @@ namespace drag {
 class Drag : public IForce {
 public:
 
-    void apply(IPhysicsBody& body, PhysicsContext& context, float /*dt*/) override
+    void apply(IPhysicsBody& body, PhysicsContext& context, double /*dt*/) override
     {
         math::Vec3 velocity = body.getVelocity();
 
@@ -30,16 +30,16 @@ public:
             velocity = velocity - *context.wind;
         }
 
-        float velocityMagnitude = velocity.length();
+        double velocityMagnitude = velocity.length();
 
         // get air density from context or use default
-        float rho = context.airDensity.value_or(constants::BASE_ATMOSPHERIC_DENSITY);
+        double rho = context.airDensity.value_or(constants::BASE_ATMOSPHERIC_DENSITY);
 
         // Mach = u / c
-        float mach = velocityMagnitude / constants::BASE_SPEED_OF_SOUND;
+        double mach = velocityMagnitude / constants::BASE_SPEED_OF_SOUND;
 
-        float cd = constants::DEFAULT_CD;
-        float area = constants::DEFAULT_AREA;
+        double cd = constants::DEFAULT_CD;
+        double area = constants::DEFAULT_AREA;
 
         // try to use projectile specs if available
         auto* projectile = dynamic_cast<projectile::IProjectileBody*>(&body);
@@ -58,7 +58,7 @@ public:
         }
 
         // F_d = -0.5 * rho * S * Cd * v * |v|
-        math::Vec3 force = -0.5f * rho * area * cd * velocity * velocityMagnitude;
+        math::Vec3 force = -0.5 * rho * area * cd * velocity * velocityMagnitude;
 
         body.addForce(force);
         m_force = force;

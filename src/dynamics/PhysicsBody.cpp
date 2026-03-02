@@ -11,31 +11,31 @@ namespace projectile {
 
 // ProjectileSpecs
 
-float ProjectileSpecs::calculateArea(float diameter)
+double ProjectileSpecs::calculateArea(double diameter)
 {
     // cross-sectional area: S = pi * d ^ 2 / 4
-    return math::constants::PI * diameter * diameter * 0.25f;
+    return math::constants::PI * diameter * diameter * 0.25;
 }
 
-float ProjectileSpecs::calculateMomentOfInertiaX(float mass, float diameter)
+double ProjectileSpecs::calculateMomentOfInertiaX(double mass, double diameter)
 {
     // uniform cylinder approximation: Ix = 1/8 * m * d^2
-    return 0.125f * mass * diameter * diameter;
+    return 0.125 * mass * diameter * diameter;
 }
 
-float ProjectileSpecs::calculateSpinRate(float velocity, float twistRate, float diameter)
+double ProjectileSpecs::calculateSpinRate(double velocity, double twistRate, double diameter)
 {
     // spin rate: p = 2 * pi * V / (n * d)
-    return 2.0f * math::constants::PI * velocity / (twistRate * diameter);
+    return 2.0 * math::constants::PI * velocity / (twistRate * diameter);
 }
 
 }
 
 // RigidBody
 
-void RigidBody::setMass(float mass)
+void RigidBody::setMass(double mass)
 {
-    m_mass = (mass > 0.0f ? mass : 1.0f);
+    m_mass = (mass > 0.0 ? mass : 1.0);
 }
 
 void RigidBody::setPosition(const math::Vec3& pos)
@@ -48,15 +48,15 @@ void RigidBody::setVelocity(const math::Vec3& v)
     m_velocity = v;
 }
 
-void RigidBody::setVelocityFromAngles(float speed, float elevationDeg, float azimuthDeg)
+void RigidBody::setVelocityFromAngles(double speed, double elevationDeg, double azimuthDeg)
 {
-    const float elev = math::deg2rad(elevationDeg);
-    const float azim = math::deg2rad(azimuthDeg);
+    const double elev = math::deg2rad(elevationDeg);
+    const double azim = math::deg2rad(azimuthDeg);
 
-    const float ce = std::cos(elev);
-    const float se = std::sin(elev);
-    const float sa = std::sin(azim);
-    const float ca = std::cos(azim);
+    const double ce = std::cos(elev);
+    const double se = std::sin(elev);
+    const double sa = std::sin(azim);
+    const double ca = std::cos(azim);
 
     m_velocity = {ce * sa * speed, se * speed, ce * ca * speed};
 }
@@ -96,7 +96,7 @@ ProjectileRigidBody::ProjectileRigidBody(const ProjectileSpecs& specs) : RigidBo
 }
 
 // auto-calculate spin rate on first velocity set if not already set
-void ProjectileRigidBody::setInitialSpinRate(float velocity)
+void ProjectileRigidBody::setInitialSpinRate(double velocity)
 {
     if (!m_specs.spinSpecs)
     {

@@ -7,14 +7,14 @@
 namespace BulletPhysics {
 namespace collision {
 
-GroundCollider::GroundCollider(float groundLevel) : m_position{0.0f, groundLevel, 0.0f} {}
+GroundCollider::GroundCollider(double groundLevel) : m_position{0.0, groundLevel, 0.0} {}
 
 void GroundCollider::setPosition(const math::Vec3& pos)
 {
     m_position.y = pos.y;
 }
 
-void GroundCollider::setGroundY(float level)
+void GroundCollider::setGroundY(double level)
 {
     m_position.y = level;
 }

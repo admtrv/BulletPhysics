@@ -8,27 +8,27 @@ namespace BulletPhysics {
 namespace math {
 
 struct Vec3 {
-    float x, y, z;
+    double x, y, z;
 
     Vec3();
-    Vec3(float X, float Y, float Z);
+    Vec3(double X, double Y, double Z);
 
     Vec3 operator+(const Vec3& rhs) const;
     Vec3 operator-(const Vec3& rhs) const;
-    Vec3 operator*(float scalar) const;
-    Vec3 operator/(float scalar) const;
+    Vec3 operator*(double scalar) const;
+    Vec3 operator/(double scalar) const;
 
     Vec3& operator+=(const Vec3& rhs);
     Vec3& operator-=(const Vec3& rhs);
-    Vec3& operator*=(float scalar);
+    Vec3& operator*=(double scalar);
 
-    float length() const;
+    double length() const;
     Vec3 normalized() const;
-    float dot(const Vec3& rhs) const;
+    double dot(const Vec3& rhs) const;
     Vec3 cross(const Vec3& rhs) const;
 };
 
-Vec3 operator*(float scalar, const Vec3& vec);
+Vec3 operator*(double scalar, const Vec3& vec);
 
 } // namespace math
 } // namespace BulletPhysics

@@ -15,10 +15,10 @@ namespace dynamics {
 class PhysicsContext {
 public:
     // atmosphere context
-    std::optional<float> airDensity;        // kg/m^3
-    std::optional<float> airTemperature;    // K
-    std::optional<float> airPressure;       // Pa
-    std::optional<float> airHumidity;       // % (relative humidity 0-100)
+    std::optional<double> airDensity;        // kg/m^3
+    std::optional<double> airTemperature;    // K
+    std::optional<double> airPressure;       // Pa
+    std::optional<double> airHumidity;       // % (relative humidity 0-100)
     std::optional<math::Vec3> wind;         // m/s
 
     // geographic context
@@ -26,7 +26,7 @@ public:
     std::optional<double> longitude;        // rad
     std::optional<double> altitude;         // m (above sea level)
 
-    std::optional<float> gravity;           // m/s^2 (gravity acceleration magnitude)
+    std::optional<double> gravity;           // m/s^2 (gravity acceleration magnitude)
 
     void reset()
     {

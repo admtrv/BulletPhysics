@@ -29,7 +29,7 @@ void PhysicsWorld::clear()
     m_environments.clear();
 }
 
-void PhysicsWorld::applyForces(IPhysicsBody& body, float dt)
+void PhysicsWorld::applyForces(IPhysicsBody& body, double dt)
 {
     m_context.reset();
 

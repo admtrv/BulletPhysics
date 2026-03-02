@@ -34,7 +34,7 @@ public:
     DragCurve(const DragPoint* points, size_t count) : m_points(points), m_count(count) {}
 
     // get Cd for given mach number (linear interpolation)
-    float getCd(float mach) const;
+    double getCd(double mach) const;
 
 private:
     const DragPoint* m_points = nullptr;
@@ -45,7 +45,7 @@ private:
 class IDragModel {
 public:
     virtual ~IDragModel() = default;
-    virtual float getCd(float mach) const = 0;
+    virtual double getCd(double mach) const = 0;
 };
 
 // standard G1-G8, GL curves
@@ -53,7 +53,7 @@ class StandardDragModel : public IDragModel {
 public:
     explicit StandardDragModel(DragCurveModel model);
 
-    float getCd(float mach) const override;
+    double getCd(double mach) const override;
     DragCurveModel getModel() const { return m_model; }
 
 private:
@@ -64,13 +64,13 @@ private:
 // custom constant Cd
 class CustomDragModel : public IDragModel {
 public:
-    explicit CustomDragModel(float cd) : m_cd(cd) {}
+    explicit CustomDragModel(double cd) : m_cd(cd) {}
 
-    float getCd(float mach) const override { return m_cd; }
-    float getCd() const { return m_cd; }
+    double getCd(double mach) const override { return m_cd; }
+    double getCd() const { return m_cd; }
 
 private:
-    float m_cd;
+    double m_cd;
 };
 
 } // namespace drag

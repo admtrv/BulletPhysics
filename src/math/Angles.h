@@ -11,13 +11,13 @@
 namespace BulletPhysics {
 namespace math {
 
-inline float deg2rad(float deg)
+inline double deg2rad(double deg)
 {
-    return deg * (constants::PI / 180.0f);
+    return deg * (constants::PI / 180.0);
 }
-inline float rad2deg(float rad)
+inline double rad2deg(double rad)
 {
-    return rad * (180.0f / constants::PI);
+    return rad * (180.0 / constants::PI);
 }
 
 } // namespace math

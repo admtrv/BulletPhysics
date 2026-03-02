@@ -20,7 +20,7 @@ public:
     virtual ~IForce() = default;
 
     // apply force to physics body using context
-    virtual void apply(IPhysicsBody& body, PhysicsContext& context, float dt) = 0;
+    virtual void apply(IPhysicsBody& body, PhysicsContext& context, double dt) = 0;
 
     // check if this force should be active
     virtual bool isActive() const { return true; }
@@ -31,7 +31,7 @@ public:
     virtual math::Vec3 getForce() const { return m_force; }
 
 protected:
-    math::Vec3 m_force{0.0f, 0.0f, 0.0f};
+    math::Vec3 m_force{0.0, 0.0, 0.0};
 };
 
 } // namespace forces

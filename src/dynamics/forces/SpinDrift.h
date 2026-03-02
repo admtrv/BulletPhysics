@@ -37,33 +37,33 @@ static math::Vec3 calculateYawOfRepose(const projectile::ProjectileSpecs& specs,
     // requers projectile spin specs
     if (!hasSpinDriftData(specs))
     {
-        return {0.0f, 0.0f, 0.0f};
+        return {0.0, 0.0, 0.0};
     }
     const auto& spinSpecs = specs.spinSpecs.value();
 
     // velocity
-    float velocityMagnitude = velocity.length();
-    if (velocityMagnitude < 1e-3f)
+    double velocityMagnitude = velocity.length();
+    if (velocityMagnitude < 1e-3)
     {
-        return {0.0f, 0.0f, 0.0f};
+        return {0.0, 0.0, 0.0};
     }
 
     // denominator
-    float rho = context.airDensity.value_or(constants::BASE_ATMOSPHERIC_DENSITY);
-    float S = specs.area.value();
-    float d = specs.diameter.value();
-    float velocityMagnitudePow4 = velocityMagnitude * velocityMagnitude * velocityMagnitude * velocityMagnitude;
-    float C_M_alpha = spinSpecs.overtuningCoefficient;
+    double rho = context.airDensity.value_or(constants::BASE_ATMOSPHERIC_DENSITY);
+    double S = specs.area.value();
+    double d = specs.diameter.value();
+    double velocityMagnitudePow4 = velocityMagnitude * velocityMagnitude * velocityMagnitude * velocityMagnitude;
+    double C_M_alpha = spinSpecs.overtuningCoefficient;
 
-    float denominator = rho * S * d * velocityMagnitudePow4 * C_M_alpha;
+    double denominator = rho * S * d * velocityMagnitudePow4 * C_M_alpha;
 
     // numerator
-    float Ix = spinSpecs.momentOfInertia.value();
-    float p = spinSpecs.spinRate.value();
+    double Ix = spinSpecs.momentOfInertia.value();
+    double p = spinSpecs.spinRate.value();
     math::Vec3 g = constants::GRAVITY;
     math::Vec3 gCrossV = g.cross(velocity);
 
-    math::Vec3 numerator = 2.0f * Ix * p * gCrossV;
+    math::Vec3 numerator = 2.0 * Ix * p * gCrossV;
 
     // final
     int spinSign = spinSpecs.riflingSpecs->direction == projectile::RiflingSpecs::Direction::RIGHT ? 1 : -1;
@@ -73,7 +73,7 @@ static math::Vec3 calculateYawOfRepose(const projectile::ProjectileSpecs& specs,
 
 class Lift : public IForce {
 public:
-    void apply(IPhysicsBody& body, PhysicsContext& context, float /*dt*/) override
+    void apply(IPhysicsBody& body, PhysicsContext& context, double /*dt*/) override
     {
         // requires projectile body
         auto* projectile = dynamic_cast<projectile::IProjectileBody*>(&body);
@@ -93,23 +93,23 @@ public:
 
         // velocity
         math::Vec3 velocity = body.getVelocity();
-        float velocityMagnitude = velocity.length();
-        if (velocityMagnitude < 1e-3f)
+        double velocityMagnitude = velocity.length();
+        if (velocityMagnitude < 1e-3)
         {
             return;
         }
-        float velocityMagnitudePow2 = velocityMagnitude * velocityMagnitude;
+        double velocityMagnitudePow2 = velocityMagnitude * velocityMagnitude;
 
         // data
-        float rho = context.airDensity.value_or(constants::BASE_ATMOSPHERIC_DENSITY);
-        float S = specs.area.value();
-        float C_L_alpha = spinSpecs.liftCoefficient;
+        double rho = context.airDensity.value_or(constants::BASE_ATMOSPHERIC_DENSITY);
+        double S = specs.area.value();
+        double C_L_alpha = spinSpecs.liftCoefficient;
 
         // yaw of repose
         math::Vec3 alpha_e = calculateYawOfRepose(specs, context, velocity);
 
         // F_l = 1/2 * rho * S * C_L_alpha * V^2 * alpha_e
-        math::Vec3 force = 0.5f * rho * S * C_L_alpha * velocityMagnitudePow2 * alpha_e;
+        math::Vec3 force = 0.5 * rho * S * C_L_alpha * velocityMagnitudePow2 * alpha_e;
 
         body.addForce(force);
         m_force = force;
@@ -125,7 +125,7 @@ private:
 
 class Magnus : public IForce {
 public:
-    void apply(IPhysicsBody& body, PhysicsContext& context, float /*dt*/) override
+    void apply(IPhysicsBody& body, PhysicsContext& context, double /*dt*/) override
     {
         // requires projectile body
         auto* projectile = dynamic_cast<projectile::IProjectileBody*>(&body);
@@ -145,25 +145,25 @@ public:
 
         // velocity
         math::Vec3 velocity = body.getVelocity();
-        float velocityMagnitude = velocity.length();
-        if (velocityMagnitude < 1e-3f)
+        double velocityMagnitude = velocity.length();
+        if (velocityMagnitude < 1e-3)
         {
             return;
         }
 
         // data
-        float rho = context.airDensity.value_or(constants::BASE_ATMOSPHERIC_DENSITY);
-        float d = specs.diameter.value();
-        float S = specs.area.value();
-        float p = spinSpecs.spinRate.value();
-        float C_mag_f = spinSpecs.magnusCoefficient;
+        double rho = context.airDensity.value_or(constants::BASE_ATMOSPHERIC_DENSITY);
+        double d = specs.diameter.value();
+        double S = specs.area.value();
+        double p = spinSpecs.spinRate.value();
+        double C_mag_f = spinSpecs.magnusCoefficient;
 
         // yaw of repose
         math::Vec3 alpha_e = calculateYawOfRepose(specs, context, velocity);
         math::Vec3 alphaCrossV = alpha_e.cross(velocity);
 
         // F_m = -1/2 * rho * S * d * p * C_mag_f * (alpha_e x V)
-        math::Vec3 force = -0.5f * rho * S * d * p * C_mag_f * alphaCrossV;
+        math::Vec3 force = -0.5 * rho * S * d * p * C_mag_f * alphaCrossV;
 
         body.addForce(force);
         m_force = force;

@@ -9,7 +9,7 @@ namespace dynamics {
 namespace forces {
 namespace drag {
 
-float DragCurve::getCd(float mach) const
+double DragCurve::getCd(double mach) const
 {
     if (!m_points || m_count == 0)
     {
@@ -33,7 +33,7 @@ float DragCurve::getCd(float mach) const
         ++i;
     }
 
-    float t = (mach - m_points[i].mach) / (m_points[i + 1].mach - m_points[i].mach);
+    double t = (mach - m_points[i].mach) / (m_points[i + 1].mach - m_points[i].mach);
     return math::lerp(m_points[i].cd, m_points[i + 1].cd, t);
 }
 
@@ -67,7 +67,7 @@ StandardDragModel::StandardDragModel(DragCurveModel model) : m_model(model)
     }
 }
 
-float StandardDragModel::getCd(float mach) const
+double StandardDragModel::getCd(double mach) const
 {
     return m_curve.getCd(mach);
 }

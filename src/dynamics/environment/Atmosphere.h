@@ -17,9 +17,9 @@ namespace environment {
 class Atmosphere : public IEnvironment {
 public:
     explicit Atmosphere(
-        float baseTemperature = constants::BASE_TEMPERATURE,
-        float basePressure = constants::BASE_ATMOSPHERIC_PRESSURE,
-        float groundY = 0.0f)
+        double baseTemperature = constants::BASE_TEMPERATURE,
+        double basePressure = constants::BASE_ATMOSPHERIC_PRESSURE,
+        double groundY = 0.0)
             : m_baseTemperature(baseTemperature)
             , m_basePressure(basePressure)
             , m_groundY(groundY)
@@ -27,16 +27,16 @@ public:
 
     void update(IPhysicsBody& body, PhysicsContext& context) override
     {
-        float altitude = std::max(0.0f, std::min(body.getPosition().y - m_groundY, constants::TROPOSPHERE_MAX));
+        double altitude = std::max(0.0, std::min(body.getPosition().y - m_groundY, constants::TROPOSPHERE_MAX));
 
         // linear temperature decrease: T = T0 - L * h
-        float temperature = m_baseTemperature - constants::LAPSE_RATE * altitude;
+        double temperature = m_baseTemperature - constants::LAPSE_RATE * altitude;
 
         // barometric formula: p = p0 * (T / T0)^(g / (R * L))
-        float pressure = m_basePressure * std::pow(temperature / m_baseTemperature, BAROMETRIC_EXP);
+        double pressure = m_basePressure * std::pow(temperature / m_baseTemperature, BAROMETRIC_EXP);
 
         // ideal gas law: rho = p / (R * T)
-        float density = pressure / (constants::GAS_CONSTANT_DRY_AIR * temperature);
+        double density = pressure / (constants::GAS_CONSTANT_DRY_AIR * temperature);
 
         context.airTemperature = temperature;
         context.airPressure = pressure;
@@ -49,11 +49,11 @@ private:
     std::string m_name = "Atmosphere";
 
     // barometric formula exponent: g / (R * L)
-    static inline const float BAROMETRIC_EXP = constants::GRAVITY.length() / (constants::GAS_CONSTANT_DRY_AIR * constants::LAPSE_RATE);
+    static inline const double BAROMETRIC_EXP = constants::GRAVITY.length() / (constants::GAS_CONSTANT_DRY_AIR * constants::LAPSE_RATE);
 
-    float m_groundY;
-    float m_baseTemperature;      // K
-    float m_basePressure;         // Pa
+    double m_groundY;
+    double m_baseTemperature;      // K
+    double m_basePressure;         // Pa
 };
 
 } // namespace environment

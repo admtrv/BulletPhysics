@@ -17,61 +17,61 @@ namespace terminal {
 namespace {
 
 // critical grazing angle for ricochet (radians from surface), Wijk
-float criticalAngle(float mass, float speed, float diameter, float yieldStrength)
+double criticalAngle(double mass, double speed, double diameter, double yieldStrength)
 {
     // tan^3(theta_crit) + tan(theta_crit) = 8 * m * v^2 / (3 * sigma * pi * D^3)
 
-    float d3 = diameter * diameter * diameter;
-    float denom = 3.0f * yieldStrength * math::constants::PI * d3;
+    double d3 = diameter * diameter * diameter;
+    double denom = 3.0 * yieldStrength * math::constants::PI * d3;
 
-    if (denom < 1e-12f)
-        return 0.0f;
+    if (denom < 1e-12)
+        return 0.0;
 
-    float rhs = 8.0f * mass * speed * speed / denom;
+    double rhs = 8.0 * mass * speed * speed / denom;
 
     // solve tan^3(t) + t = rhs for t = tan(theta) via Newton's
-    float t = std::cbrt(rhs);   // initial guess
+    double t = std::cbrt(rhs);   // initial guess
     for (int i = 0; i < 8; ++i)
     {
-        float f = t * t * t + t - rhs;
-        float df = 3.0f * t * t + 1.0f;
+        double f = t * t * t + t - rhs;
+        double df = 3.0 * t * t + 1.0;
 
         t -= f / df;
 
-        if (t < 0.0f)
-            t = 0.0f;
+        if (t < 0.0)
+            t = 0.0;
     }
-    float thetaCritical = std::atan(t);
+    double thetaCritical = std::atan(t);
 
     // convert to grazing angle
-    float alphaCritical = math::constants::PI * 0.5f - thetaCritical;
+    double alphaCritical = math::constants::PI * 0.5 - thetaCritical;
 
-    return std::clamp(alphaCritical, 0.0f, math::constants::PI * 0.5f);
+    return std::clamp(alphaCritical, 0.0, math::constants::PI * 0.5);
 }
 
 // penetration depth (meters), energy-based model
-float maxPenetrationDepth(float mass, float speed, float area, float penetrationResistance)
+double maxPenetrationDepth(double mass, double speed, double area, double penetrationResistance)
 {
-    float resistForce = penetrationResistance * area;
+    double resistForce = penetrationResistance * area;
 
-    if (resistForce < 1e-9f)
-        return 1e6f;
+    if (resistForce < 1e-9)
+        return 1e6;
 
-    float kineticEnergy = 0.5f * mass * speed * speed;
+    double kineticEnergy = 0.5 * mass * speed * speed;
     return kineticEnergy / resistForce;
 }
 
 // residual velocity after penetration, energy-based model
-float residualSpeed(float speed, float thickness, float maxPen)
+double residualSpeed(double speed, double thickness, double maxPen)
 {
-    if (maxPen < 1e-9f)
-        return 0.0f;
+    if (maxPen < 1e-9)
+        return 0.0;
 
-    float ratio = thickness / maxPen;
-    if (ratio >= 1.0f)
-        return 0.0f;
+    double ratio = thickness / maxPen;
+    if (ratio >= 1.0)
+        return 0.0;
 
-    return speed * std::sqrt(1.0f - ratio);
+    return speed * std::sqrt(1.0 - ratio);
 }
 
 } // anonymous namespace
@@ -80,84 +80,84 @@ ImpactResult Impact::resolve(const dynamics::projectile::IProjectileBody& projec
 {
     const auto& specs = projectile.getProjectileSpecs();
     math::Vec3 velocity = projectile.getVelocity();
-    float speed = velocity.length();
+    double speed = velocity.length();
 
-    if (speed < 1e-6f)
+    if (speed < 1e-6)
     {
-        return {ImpactOutcome::Embed, {0.0f, 0.0f, 0.0f}, 0.0f, 0.0f};
+        return {ImpactOutcome::Embed, {0.0, 0.0, 0.0}, 0.0, 0.0};
     }
 
     const Material& material = info.material;
 
-    float diameter = specs.diameter.value_or(constants::DEFAULT_DIAMETER);
-    float area = specs.area.value_or(constants::DEFAULT_AREA);
-    float mass = specs.mass;
+    double diameter = specs.diameter.value_or(constants::DEFAULT_DIAMETER);
+    double area = specs.area.value_or(constants::DEFAULT_AREA);
+    double mass = specs.mass;
 
     // E_k = 0.5 * m * v^2
-    float kineticEnergy = 0.5f * mass * speed * speed;
+    double kineticEnergy = 0.5 * mass * speed * speed;
 
     // surface normal
     math::Vec3 normal = info.normal.normalized();
 
     // decompose velocity
-    float vDotN = velocity.dot(normal);
+    double vDotN = velocity.dot(normal);
     math::Vec3 vNormal = normal * vDotN;
     math::Vec3 vTangent = velocity - vNormal;
 
     // grazing angle
-    float grazingAngle = std::asin(std::clamp(std::abs(vDotN) / speed, 0.0f, 1.0f));
+    double grazingAngle = std::asin(std::clamp(std::abs(vDotN) / speed, 0.0, 1.0));
 
     // ricochet check
-    float alphaAngle = criticalAngle(mass, speed, diameter, material.yieldStrength);
+    double alphaAngle = criticalAngle(mass, speed, diameter, material.yieldStrength);
     if (grazingAngle < alphaAngle)
     {
         // step 1: classical mechanics: restitution on normal + Coulomb friction on tangential
-        float vNormalMag = std::abs(vDotN);
-        float vTangentMag = vTangent.length();
+        double vNormalMag = std::abs(vDotN);
+        double vTangentMag = vTangent.length();
 
         // reflected normal
         math::Vec3 reflectedNormal = normal * (-vDotN * material.restitutionN);
 
         // Coulomb friction: max tangential impulse change
-        float maxFrictionDv = material.frictionT * (1.0f + material.restitutionN) * vNormalMag;
-        float newTangentMag = std::max(vTangentMag - maxFrictionDv, 0.0f);
+        double maxFrictionDv = material.frictionT * (1.0 + material.restitutionN) * vNormalMag;
+        double newTangentMag = std::max(vTangentMag - maxFrictionDv, 0.0);
 
-        math::Vec3 tangentDir = (vTangentMag > 1e-9f) ? vTangent * (1.0f / vTangentMag) : math::Vec3{0.0f, 0.0f, 0.0f};
+        math::Vec3 tangentDir = (vTangentMag > 1e-9) ? vTangent * (1.0 / vTangentMag) : math::Vec3{0.0, 0.0, 0.0};
         math::Vec3 reflectedTangent = tangentDir * newTangentMag;
 
         math::Vec3 classicalVelocity = reflectedTangent + reflectedNormal;
-        float classicalSpeed = classicalVelocity.length();
-        float classicalEnergy = 0.5f * mass * classicalSpeed * classicalSpeed;
+        double classicalSpeed = classicalVelocity.length();
+        double classicalEnergy = 0.5 * mass * classicalSpeed * classicalSpeed;
 
         // step 2: empirical correction: apply only "missing" losses
-        float targetEnergy = kineticEnergy * (1.0f - material.empiricalEnergyLoss);
+        double targetEnergy = kineticEnergy * (1.0 - material.empiricalEnergyLoss);
         math::Vec3 residualVelocity = classicalVelocity;
 
-        if (classicalEnergy > targetEnergy && classicalSpeed > 1e-9f)
+        if (classicalEnergy > targetEnergy && classicalSpeed > 1e-9)
         {
-            float correction = std::sqrt(targetEnergy / classicalEnergy);
+            double correction = std::sqrt(targetEnergy / classicalEnergy);
             residualVelocity = classicalVelocity * correction;
         }
 
-        float finalSpeed = residualVelocity.length();
-        float energyAbsorbed = kineticEnergy - 0.5f * mass * finalSpeed * finalSpeed;
+        double finalSpeed = residualVelocity.length();
+        double energyAbsorbed = kineticEnergy - 0.5 * mass * finalSpeed * finalSpeed;
 
-        return {ImpactOutcome::Ricochet, residualVelocity, std::max(energyAbsorbed, 0.0f), 0.0f};
+        return {ImpactOutcome::Ricochet, residualVelocity, std::max(energyAbsorbed, 0.0), 0.0};
     }
 
     // penetration calculation
-    float penetrationThickness = maxPenetrationDepth(mass, speed, area, material.penetrationResistance);
+    double penetrationThickness = maxPenetrationDepth(mass, speed, area, material.penetrationResistance);
 
     if (penetrationThickness < info.thickness)
     {
-        return {ImpactOutcome::Embed, {0.0f, 0.0f, 0.0f}, kineticEnergy, penetrationThickness};
+        return {ImpactOutcome::Embed, {0.0, 0.0, 0.0}, kineticEnergy, penetrationThickness};
     }
 
     // full penetration
-    float vRes = residualSpeed(speed, info.thickness, penetrationThickness);
+    double vRes = residualSpeed(speed, info.thickness, penetrationThickness);
     math::Vec3 direction = velocity.normalized();
     math::Vec3 residualVelocity = direction * vRes;
-    float residualEnergy = 0.5f * mass * vRes * vRes;
+    double residualEnergy = 0.5 * mass * vRes * vRes;
 
     return {ImpactOutcome::Penetration, residualVelocity, kineticEnergy - residualEnergy, info.thickness};
 }

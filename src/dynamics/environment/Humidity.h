@@ -16,10 +16,10 @@ namespace environment {
 // provides humidity correction to air density
 class Humidity : public IEnvironment {
 public:
-    explicit Humidity(float relativeHumidity = 50.0f)
+    explicit Humidity(double relativeHumidity = 50.0)
         : m_relativeHumidity(relativeHumidity)
     {
-        m_relativeHumidity = std::max(0.0f, std::min(100.0f, relativeHumidity));
+        m_relativeHumidity = std::max(0.0, std::min(100.0, relativeHumidity));
     }
 
     void update(IPhysicsBody& /*body*/, PhysicsContext& context) override
@@ -33,9 +33,9 @@ public:
             return;
         }
 
-        float temperature = *context.airTemperature;
-        float pressure = *context.airPressure;
-        float density = *context.airDensity;
+        double temperature = *context.airTemperature;
+        double pressure = *context.airPressure;
+        double density = *context.airDensity;
 
         // apply humidity correction
         context.airDensity = correctDensityForHumidity(density, temperature, pressure, m_relativeHumidity);
@@ -46,28 +46,28 @@ public:
 private:
     std::string m_name = "Humidity";
 
-    float m_relativeHumidity; // % (0-100)
+    double m_relativeHumidity; // % (0-100)
 
     // Tetens approximation: p_sat = 0.61078 * exp((17.27 * (T - 273.15)) / (T - 35.85))
-    static float saturationVaporPressure(float tempK)
+    static double saturationVaporPressure(double tempK)
     {
-        float tempC = tempK - constants::CELSIUS_TO_KELVIN;
-        float exponent = constants::TETENS_A * tempC / (tempK + constants::TETENS_B);
+        double tempC = tempK - constants::CELSIUS_TO_KELVIN;
+        double exponent = constants::TETENS_A * tempC / (tempK + constants::TETENS_B);
         return constants::TETENS_C * std::exp(exponent);
     }
 
     // correct air density for humidity
     // rho_humid = rho_dry + rho_vapor
     // where rho_dry = p_dry / (R_dry * T) and rho_vap = p_vap / (R_vap * T)
-    static float correctDensityForHumidity(float rhoDry, float tempK, float pressure, float humidityPercent)
+    static double correctDensityForHumidity(double rhoDry, double tempK, double pressure, double humidityPercent)
     {
         // saturation vapor pressure
-        float pressureSaturation = saturationVaporPressure(tempK);
+        double pressureSaturation = saturationVaporPressure(tempK);
 
         // water vapor pressure: p_vap = phi * p_sat, where phi is relative humidity
-        float pressureVapor = (humidityPercent / 100.0f) * pressureSaturation;
+        double pressureVapor = (humidityPercent / 100.0) * pressureSaturation;
 
-        float densityVapor = pressureVapor / (constants::GAS_CONSTANT_WATER_VAPOR * tempK);
+        double densityVapor = pressureVapor / (constants::GAS_CONSTANT_WATER_VAPOR * tempK);
 
         return rhoDry + densityVapor;
     }

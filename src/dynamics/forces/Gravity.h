@@ -14,16 +14,16 @@ namespace forces {
 class Gravity : public IForce {
 public:
     // gravity: F = m * g
-    void apply(IPhysicsBody& body, PhysicsContext& context, float /*dt*/) override
+    void apply(IPhysicsBody& body, PhysicsContext& context, double /*dt*/) override
     {
-        if (body.getMass() > 0.0f)
+        if (body.getMass() > 0.0)
         {
             math::Vec3 force;
 
             // get corrected gravity acceleration from context or use classic constant
             if (context.gravity.has_value())
             {
-                math::Vec3 g = math::Vec3{0.0f, -*context.gravity, 0.0f};
+                math::Vec3 g = math::Vec3{0.0, -*context.gravity, 0.0};
                 force = body.getMass() * g;
             }
             else

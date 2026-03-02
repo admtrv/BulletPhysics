@@ -7,6 +7,30 @@
 namespace BulletPhysics {
 namespace dynamics {
 
+namespace projectile {
+
+// ProjectileSpecs
+
+float ProjectileSpecs::calculateArea(float diameter)
+{
+    // cross-sectional area: S = pi * d ^ 2 / 4
+    return math::constants::PI * diameter * diameter * 0.25f;
+}
+
+float ProjectileSpecs::calculateMomentOfInertiaX(float mass, float diameter)
+{
+    // uniform cylinder approximation: Ix = 1/8 * m * d^2
+    return 0.125f * mass * diameter * diameter;
+}
+
+float ProjectileSpecs::calculateSpinRate(float velocity, float twistRate, float diameter)
+{
+    // spin rate: p = 2 * pi * V / (n * d)
+    return 2.0f * math::constants::PI * velocity / (twistRate * diameter);
+}
+
+}
+
 // RigidBody
 
 void RigidBody::setMass(float mass)
@@ -57,7 +81,7 @@ ProjectileRigidBody::ProjectileRigidBody(const ProjectileSpecs& specs) : RigidBo
 
     if (!m_specs.area.has_value() && m_specs.diameter.has_value())
     {
-        m_specs.area = calculateArea(m_specs.diameter.value());
+        m_specs.area = ProjectileSpecs::calculateArea(m_specs.diameter.value());
     }
 
     if (m_specs.spinSpecs)
@@ -66,27 +90,9 @@ ProjectileRigidBody::ProjectileRigidBody(const ProjectileSpecs& specs) : RigidBo
 
         if (!spinSpecs.momentOfInertia && m_specs.diameter)
         {
-            spinSpecs.momentOfInertia = calculateMomentOfInertiaX(m_specs.mass, *m_specs.diameter);
+            spinSpecs.momentOfInertia = ProjectileSpecs::calculateMomentOfInertiaX(m_specs.mass, *m_specs.diameter);
         }
     }
-}
-
-float ProjectileRigidBody::calculateArea(float diameter)
-{
-    // cross-sectional area: S = pi * d ^ 2 / 4
-    return math::constants::PI * diameter * diameter * 0.25f;
-}
-
-float ProjectileRigidBody::calculateMomentOfInertiaX(float mass, float diameter)
-{
-    // uniform cylinder approximation: Ix = 1/8 * m * d^2
-    return 0.125f * mass * diameter * diameter;
-}
-
-float ProjectileRigidBody::calculateSpinRate(float velocity, float twistRate, float diameter)
-{
-    // spin rate: p = 2 * pi * V / (n * d)
-    return 2.0f * math::constants::PI * velocity / (twistRate * diameter);
 }
 
 // auto-calculate spin rate on first velocity set if not already set
@@ -101,7 +107,7 @@ void ProjectileRigidBody::setInitialSpinRate(float velocity)
 
     if (!spinSpecs.spinRate && spinSpecs.riflingSpecs && m_specs.diameter)
     {
-        spinSpecs.spinRate = calculateSpinRate(velocity, spinSpecs.riflingSpecs->twistRate, *m_specs.diameter);
+        spinSpecs.spinRate = ProjectileSpecs::calculateSpinRate(velocity, spinSpecs.riflingSpecs->twistRate, *m_specs.diameter);
     }
 }
 

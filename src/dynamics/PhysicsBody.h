@@ -82,6 +82,10 @@ struct ProjectileSpecs {
 
     // spin-related specifications
     std::optional<SpinSpecs> spinSpecs;
+
+    static float calculateArea(float diameter);
+    static float calculateMomentOfInertiaX(float mass, float diameter);
+    static float calculateSpinRate(float velocity, float twistRate, float diameter);
 };
 
 // projectile interface
@@ -158,12 +162,6 @@ public:
 
 private:
     ProjectileSpecs m_specs;
-
-    // helpers
-    static float calculateArea(float diameter);
-    static float calculateMomentOfInertiaX(float mass, float diameter);
-    static float calculateSpinRate(float velocity, float twistRate, float diameter);
-
 };
 
 } // namespace projectile

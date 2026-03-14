@@ -6,8 +6,6 @@
 
 #include "Constants.h"
 
-#include <numbers>
-
 namespace BulletPhysics {
 namespace math {
 

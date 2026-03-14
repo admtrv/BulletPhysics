@@ -18,7 +18,7 @@ inline constexpr double CELSIUS_TO_KELVIN = 273.15;     // between Celsius and K
 
 // atmospheric constants (ISA model)
 inline constexpr double TROPOSPHERE_MAX = 11000.0;                      // m (troposphere height)
-inline constexpr double BASE_TEMPERATURE = 15 + CELSIUS_TO_KELVIN;       // K (15 C)
+inline constexpr double BASE_TEMPERATURE = 15 + CELSIUS_TO_KELVIN;      // K (15 C)
 inline constexpr double BASE_ATMOSPHERIC_PRESSURE = 101325.0;           // Pa
 inline constexpr double BASE_ATMOSPHERIC_DENSITY = 1.225;               // kg/m^3 (dry air)
 inline constexpr double BASE_SPEED_OF_SOUND = 340.294;                  // m/s

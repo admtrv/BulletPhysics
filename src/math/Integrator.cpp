@@ -8,7 +8,7 @@ namespace BulletPhysics {
 namespace math {
 
 // calculate acceleration at given state
-Vec3 calcAccel(dynamics::IPhysicsBody& body, dynamics::PhysicsWorld* world, double dt, const Vec3& pos, const Vec3& vel)
+Vec3 calcAccel(IPhysicsBody& body, ballistics::external::PhysicsWorld* world, double dt, const Vec3& pos, const Vec3& vel)
 {
     body.setPosition(pos);
     body.setVelocity(vel);
@@ -16,7 +16,7 @@ Vec3 calcAccel(dynamics::IPhysicsBody& body, dynamics::PhysicsWorld* world, doub
 
     if (world)
     {
-        world->applyForces(body, dt);
+        world->applyForces(body);
     }
 
     Vec3 a = {0, 0, 0};
@@ -28,7 +28,7 @@ Vec3 calcAccel(dynamics::IPhysicsBody& body, dynamics::PhysicsWorld* world, doub
     return a;
 }
 
-void EulerIntegrator::step(dynamics::IPhysicsBody& body, dynamics::PhysicsWorld* world, double dt)
+void EulerIntegrator::step(IPhysicsBody& body, ballistics::external::PhysicsWorld* world, double dt)
 {
     // clear previous forces
     body.clearForces();
@@ -36,7 +36,7 @@ void EulerIntegrator::step(dynamics::IPhysicsBody& body, dynamics::PhysicsWorld*
     // apply all registered forces
     if (world)
     {
-        world->applyForces(body, dt);
+        world->applyForces(body);
     }
 
     // calculate acceleration
@@ -55,7 +55,7 @@ void EulerIntegrator::step(dynamics::IPhysicsBody& body, dynamics::PhysicsWorld*
     body.clearForces();
 }
 
-void MidpointIntegrator::step(dynamics::IPhysicsBody& body, dynamics::PhysicsWorld* world, double dt)
+void MidpointIntegrator::step(IPhysicsBody& body, ballistics::external::PhysicsWorld* world, double dt)
 {
     // clear previous forces
     body.clearForces();
@@ -83,7 +83,7 @@ void MidpointIntegrator::step(dynamics::IPhysicsBody& body, dynamics::PhysicsWor
     body.clearForces();
 }
 
-void RK4Integrator::step(dynamics::IPhysicsBody& body, dynamics::PhysicsWorld* world, double dt)
+void RK4Integrator::step(IPhysicsBody& body, ballistics::external::PhysicsWorld* world, double dt)
 {
     // clear previous forces
     body.clearForces();

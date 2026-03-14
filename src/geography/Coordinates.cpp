@@ -3,7 +3,6 @@
  */
 
 #include "Coordinates.h"
-#include <cmath>
 
 namespace BulletPhysics {
 namespace geography {

@@ -4,8 +4,8 @@
 
 #pragma once
 
-#include "math/Vec3.h"
 #include "Constants.h"
+#include "math/Vec3.h"
 
 namespace BulletPhysics {
 namespace geography {

@@ -4,8 +4,8 @@
 
 #pragma once
 
-#include "dynamics/PhysicsBody.h"
-#include "dynamics/PhysicsWorld.h"
+#include "PhysicsBody.h"
+#include "ballistics/external/PhysicsWorld.h"
 
 namespace BulletPhysics {
 namespace math {
@@ -13,22 +13,22 @@ namespace math {
 class IIntegrator {
 public:
     virtual ~IIntegrator() = default;
-    virtual void step(dynamics::IPhysicsBody& body, dynamics::PhysicsWorld* world, double dt) = 0;
+    virtual void step(IPhysicsBody& body, ballistics::external::PhysicsWorld* world, double dt) = 0;
 };
 
 class EulerIntegrator final : public IIntegrator {
 public:
-    void step(dynamics::IPhysicsBody& body, dynamics::PhysicsWorld* world, double dt) override;
+    void step(IPhysicsBody& body, ballistics::external::PhysicsWorld* world, double dt) override;
 };
 
 class MidpointIntegrator final : public IIntegrator {
 public:
-    void step(dynamics::IPhysicsBody& body, dynamics::PhysicsWorld* world, double dt) override;
+    void step(IPhysicsBody& body, ballistics::external::PhysicsWorld* world, double dt) override;
 };
 
 class RK4Integrator final : public IIntegrator {
 public:
-    void step(dynamics::IPhysicsBody& body, dynamics::PhysicsWorld* world, double dt) override;
+    void step(IPhysicsBody& body, ballistics::external::PhysicsWorld* world, double dt) override;
 };
 
 } // namespace math

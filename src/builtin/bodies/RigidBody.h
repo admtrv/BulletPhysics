@@ -52,6 +52,10 @@ public:
 
     std::unique_ptr<IPhysicsBody> clone() const override;
 
+    // setters
+    void setAngles(double elevationDeg, double azimuthDeg);   // velocity magnitude from specs
+
+    // getters
     const projectile::ProjectileSpecs& getProjectileSpecs() const override { return m_specs; }
 
 private:

@@ -56,6 +56,14 @@ ProjectileRigidBody::ProjectileRigidBody(const projectile::ProjectileSpecs& spec
     setMass(specs.mass);
 }
 
+void ProjectileRigidBody::setAngles(double elevationDeg, double azimuthDeg)
+{
+    if (m_specs.muzzleSpecs.has_value())
+    {
+        setVelocityFromAngles(m_specs.muzzleSpecs->velocity, elevationDeg, azimuthDeg);
+    }
+}
+
 std::unique_ptr<IPhysicsBody> ProjectileRigidBody::clone() const
 {
     return std::make_unique<ProjectileRigidBody>(*this);

@@ -3,6 +3,7 @@
  */
 
 #include "RigidBody.h"
+#include "math/Angles.h"
 
 namespace BulletPhysics {
 namespace builtin {

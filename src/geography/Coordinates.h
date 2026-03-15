@@ -5,7 +5,6 @@
 #pragma once
 
 #include "Constants.h"
-#include "math/Vec3.h"
 
 namespace BulletPhysics {
 namespace geography {
@@ -30,15 +29,13 @@ struct ECEFPosition {
     double r() const;   // distance from Earth's center
 };
 
-// geographic coordinate conversions ECEF <-> Geodetic <-> ENU (standard in physics)
-
+// geographic coordinate conversions ECEF <-> Geodetic <-> ENU
 ECEFPosition geodeticToECEF(const GeographicPosition& geodetic);                            // convert geodetic (lat, lon, alt) to ECEF (x, y, z)
 GeographicPosition ecefToGeodetic(const ECEFPosition& ecef);                                // convert ECEF (x, y, z) to geodetic (lat, lon, alt)
 math::Vec3 ecefToENU(const ECEFPosition& point, const GeographicPosition& reference);       // convert ECEF (x, y, z) to local ENU (East-North-Up) relative to reference point
 ECEFPosition enuToECEF(const math::Vec3& enu, const GeographicPosition& reference);         // convert local ENU (East-North-Up) to ECEF (x, y, z) relative to reference point
 
 // gravity calculation depend on location
-
 double gravitationalAcceleration(const ECEFPosition& position);                     // calculate gravitational acceleration at ECEF position
 double gravitationalAccelerationAtGeodetic(const GeographicPosition& position);     // calculate gravitational acceleration at geodetic position
 

@@ -3,6 +3,7 @@
  */
 
 #include "DragModel.h"
+#include "PhysicsBody.h"
 
 namespace BulletPhysics {
 namespace ballistics {
@@ -14,7 +15,7 @@ double DragCurve::getCd(double mach) const
 {
     if (!m_points || m_count == 0)
     {
-        return constants::DEFAULT_CD;
+        return constants::DEFAULT_C_D;
     }
 
     // clamp to range

@@ -14,20 +14,17 @@ namespace environments {
 // provides wind velocity
 class Wind : public IEnvironment {
 public:
-    explicit Wind(const math::Vec3& windVelocity = constants::DEFAULT_WIND) : m_velocity(windVelocity) {}
+    explicit Wind(const math::Vec3& windVelocity = constants::DEFAULT_WIND);
 
-    void update(IPhysicsBody& /*body*/, PhysicsContext& context) override
-    {
-        context.wind = m_velocity;
-    }
+    void update(IPhysicsBody& /*body*/, PhysicsContext& context) override;
 
-    void setWind(const math::Vec3& windVel) { m_velocity = windVel; }
-    const math::Vec3& getWind() const { return m_velocity; }
-
+    // getters
     const std::string& getName() const override { return m_name; }
+    int getPriority() const override { return m_priority; }
 
 private:
     std::string m_name = "Wind";
+    int m_priority = 0;
 
     math::Vec3 m_velocity;
 };

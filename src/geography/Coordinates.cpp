@@ -24,12 +24,12 @@ ECEFPosition geodeticToECEF(const GeographicPosition& geodetic)
     double cosLon = std::cos(lon);
 
     // radius of curvature in prime vertical
-    double N = constants::EARTH_SEMI_MAJOR_AXIS / std::sqrt(1.0 - constants::EARTH_ECCENTRICITY_SQUARED * sinLat * sinLat);
+    double N = constants::WGS84_EARTH_SEMI_MAJOR_AXIS / std::sqrt(1.0 - constants::WGS84_EARTH_ECCENTRICITY_SQUARED * sinLat * sinLat);
 
     ECEFPosition ecef;
     ecef.x = (N + alt) * cosLat * cosLon;
     ecef.y = (N + alt) * cosLat * sinLon;
-    ecef.z = (N * (1.0 - constants::EARTH_ECCENTRICITY_SQUARED) + alt) * sinLat;
+    ecef.z = (N * (1.0 - constants::WGS84_EARTH_ECCENTRICITY_SQUARED) + alt) * sinLat;
 
     return ecef;
 }
@@ -43,19 +43,19 @@ GeographicPosition ecefToGeodetic(const ECEFPosition& ecef)
     double lon = std::atan2(y, x);
 
     double p = std::sqrt(x * x + y * y);
-    double lat = std::atan2(z, p * (1.0 - constants::EARTH_ECCENTRICITY_SQUARED));
+    double lat = std::atan2(z, p * (1.0 - constants::WGS84_EARTH_ECCENTRICITY_SQUARED));
 
     // iterate to improve latitude accuracy
     for (int i = 0; i < 5; i++)
     {
         double sinLat = std::sin(lat);
-        double N = constants::EARTH_SEMI_MAJOR_AXIS / std::sqrt(1.0 - constants::EARTH_ECCENTRICITY_SQUARED * sinLat * sinLat);
-        lat = std::atan2(z + constants::EARTH_ECCENTRICITY_SQUARED * N * sinLat, p);
+        double N = constants::WGS84_EARTH_SEMI_MAJOR_AXIS / std::sqrt(1.0 - constants::WGS84_EARTH_ECCENTRICITY_SQUARED * sinLat * sinLat);
+        lat = std::atan2(z + constants::WGS84_EARTH_ECCENTRICITY_SQUARED * N * sinLat, p);
     }
 
     double sinLat = std::sin(lat);
     double cosLat = std::cos(lat);
-    double N = constants::EARTH_SEMI_MAJOR_AXIS / std::sqrt(1.0 - constants::EARTH_ECCENTRICITY_SQUARED * sinLat * sinLat);
+    double N = constants::WGS84_EARTH_SEMI_MAJOR_AXIS / std::sqrt(1.0 - constants::WGS84_EARTH_ECCENTRICITY_SQUARED * sinLat * sinLat);
     double alt = p / cosLat - N;
 
     return GeographicPosition(lat, lon, alt);
@@ -105,7 +105,7 @@ ECEFPosition enuToECEF(const math::Vec3& enu, const GeographicPosition& referenc
 double gravitationalAcceleration(const ECEFPosition& position)
 {
     double r = position.r();
-    return constants::EARTH_GRAVITATIONAL_CONSTANT / (r * r);
+    return constants::WGS84_EARTH_GRAVITATIONAL_CONSTANT / (r * r);
 }
 
 double gravitationalAccelerationAtGeodetic(const GeographicPosition& position)

@@ -39,7 +39,7 @@ public:
     void clearForces() override;
 
 private:
-    double m_mass = 1.0;
+    double m_mass = constants::DEFAULT_MASS;
     math::Vec3 m_position{};
     math::Vec3 m_velocity{};
     math::Vec3 m_forces{};

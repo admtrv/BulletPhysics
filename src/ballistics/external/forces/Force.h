@@ -5,7 +5,7 @@
 #pragma once
 
 #include "PhysicsBody.h"
-#include "ballistics/external/PhysicsContext.h"
+#include "../PhysicsContext.h"
 
 #include <string>
 

@@ -6,7 +6,6 @@
 
 #include "Constants.h"
 #include "ballistics/external/forces/drag/DragModel.h"
-#include "math/Angles.h"
 
 #include <memory>
 #include <optional>
@@ -37,7 +36,6 @@ public:
     virtual void clearForces() = 0;
 };
 
-// interface for projectile bodies
 namespace projectile {
 
 enum class Direction {
@@ -112,5 +110,6 @@ ProjectileSpecs Sphere(double mass, double diameter);
 ProjectileSpecs Nato762();
 
 } // namespace presets
+
 } // namespace projectile
 } // namespace BulletPhysics

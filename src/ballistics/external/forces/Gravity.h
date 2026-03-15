@@ -13,18 +13,9 @@ namespace forces {
 
 class Gravity : public IForce {
 public:
-    // gravity: F = m * g
-    void apply(IPhysicsBody& body, PhysicsContext& context) override
-    {
-        if (body.getMass() > 0.0)
-        {
-            math::Vec3 force = body.getMass() * context.gravity;
+    void apply(IPhysicsBody& body, PhysicsContext& context) override;
 
-            m_force = force;
-            body.addForce(force);
-        }
-    }
-
+    // getters
     const std::string& getName() const override { return m_name; }
     const std::string& getSymbol() const override { return m_symbol; }
 

@@ -79,8 +79,8 @@ ImpactResult Impact::resolve(const projectile::IProjectileBody& projectile, cons
 
     const Material& material = info.material;
 
-    double diameter = specs.diameter.value_or(constants::DEFAULT_DIAMETER);
-    double area = specs.area.value_or(constants::DEFAULT_AREA);
+    double diameter = specs.diameter;
+    double area = specs.area;
     double mass = specs.mass;
 
     // E_k = 0.5 * m * v^2

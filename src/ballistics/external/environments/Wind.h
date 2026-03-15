@@ -14,7 +14,7 @@ namespace environments {
 // provides wind velocity
 class Wind : public IEnvironment {
 public:
-    explicit Wind(const math::Vec3& windVelocity = math::Vec3{0.0, 0.0, 0.0}) : m_velocity(windVelocity) {}
+    explicit Wind(const math::Vec3& windVelocity = constants::DEFAULT_WIND) : m_velocity(windVelocity) {}
 
     void update(IPhysicsBody& /*body*/, PhysicsContext& context) override
     {

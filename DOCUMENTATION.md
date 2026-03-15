@@ -39,21 +39,26 @@ body.setPosition({0.0, 1.5, 0.0});
 body.setVelocity({20.0, 10.0, 0.0});
 ```
 
-For projectile simulation with ballistic properties, fill `ProjectileSpecs` and use `ProjectileRigidBody`:
+For projectile simulation with ballistic properties, use the `ProjectileSpecs` builder and `ProjectileRigidBody`:
 
 ```cpp
 #include "PhysicsBody.h"
 #include "builtin/bodies/RigidBody.h"
 
-ProjectileSpecs specs{};
-specs.mass = 0.01;
-specs.diameter = 0.00762;
-specs.dragModel = DragCurveModel::G7;
-...
+auto specs = ProjectileSpecs::create(0.01, 0.00762)      // mass kg, diameter m
+    .withDragModel(DragCurveModel::G7)
+    .withMuzzle(838.0, Direction::RIGHT, 12.0);          // muzzle velocity, rifling direction, twist rate
 
 ProjectileRigidBody body(specs);
-body.setPosition({0.0, 1.5, 0.0});
-body.setVelocity({20.0, 10.0, 0.0});
+```
+
+Or use a preset:
+
+```cpp
+auto specs = presets::Sphere();     // idealized sphere
+auto specs = presets::Nato762();    // 7.62 NATO bullet
+
+ProjectileRigidBody body(specs);
 ```
 
 ## Integrator
@@ -122,10 +127,8 @@ world.addForce(std::make_unique<Gravity>());
 world.addEnvironment(std::make_unique<Atmosphere>());   // for standard isa atmosphere
 world.addForce(std::make_unique<Drag>());
 
-ProjectileSpecs specs{};
-specs.mass = 0.01;
-specs.diameter = 0.00762;               // for area calculation
-specs.dragModel = DragCurveModel::G7;
+auto specs = ProjectileSpecs::create(0.01, 0.00762)    // mass, diameter (area auto-calculated)
+    .withDragModel(DragCurveModel::G7);
 ```
 
 **+ Sea-level condition correction:**
@@ -155,8 +158,7 @@ world.addForce(std::make_unique<Lift>());
 world.addForce(std::make_unique<Magnus>());
 // or all at once via SpinDrift::addTo(world);
 
-specs.spinSpecs = SpinSpecs{};
-specs.spinSpecs.riflingSpecs = RiflingSpecs{ Direction::RIGHT, 12.0 };      // for projectile rotation data
+specs.withMuzzle(838.0, Direction::RIGHT, 12.0);    // muzzle velocity, rifling direction, twist rate
 ```
 
 ## Terminal Ballistics

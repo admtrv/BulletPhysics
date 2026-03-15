@@ -14,7 +14,7 @@ namespace environments {
 // provides humidity correction to air density
 class Humidity : public IEnvironment {
 public:
-    explicit Humidity(double relativeHumidity = 50.0) : m_relativeHumidity(relativeHumidity) {
+    explicit Humidity(double relativeHumidity = constants::DEFAULT_RELATIVE_HUMIDITY) : m_relativeHumidity(relativeHumidity) {
         m_relativeHumidity = std::max(0.0, std::min(100.0, relativeHumidity));
     }
 
@@ -23,21 +23,16 @@ public:
         // store relative humidity in context
         context.airHumidity = m_relativeHumidity;
 
-        // density correction requires pressure and temperature from Atmosphere
-        if (!context.airPressure.has_value() || !context.airTemperature.has_value() || !context.airDensity.has_value())
-        {
-            return;
-        }
-
-        double temperature = *context.airTemperature;
-        double pressure = *context.airPressure;
-        double density = *context.airDensity;
+        double temperature = context.airTemperature;
+        double pressure = context.airPressure;
+        double density = context.airDensity;
 
         // apply humidity correction
         context.airDensity = correctDensityForHumidity(density, temperature, pressure, m_relativeHumidity);
     }
 
     const std::string& getName() const override { return m_name; }
+    int getPriority() const override { return 1; }
 
 private:
     std::string m_name = "Humidity";

@@ -20,16 +20,13 @@ public:
     {
         math::Vec3 velocity = body.getVelocity();
 
-        // apply wind if available
-        if (context.wind.has_value())
-        {
-            velocity = velocity - *context.wind;
-        }
+        // apply wind
+        velocity = velocity - context.wind;
 
         double velocityMagnitude = velocity.length();
 
-        // get air density from context or use default
-        double rho = context.airDensity.value_or(constants::BASE_ATMOSPHERIC_DENSITY);
+        // air density from context
+        double rho = context.airDensity;
 
         // Mach = u / c
         double mach = velocityMagnitude / constants::BASE_SPEED_OF_SOUND;
@@ -42,22 +39,18 @@ public:
         if (proj)
         {
             const auto& specs = proj->getProjectileSpecs();
-            if (specs.dragModel.has_value())
+            if (specs.dragModel)
             {
-                cd = drag::StandardDragModel(specs.dragModel.value()).getCd(mach);
+                cd = specs.dragModel->getCd(mach);
             }
-
-            if (specs.area.has_value())
-            {
-                area = specs.area.value();
-            }
+            area = specs.area;
         }
 
         // F_d = -0.5 * rho * S * Cd * v * |v|
         math::Vec3 force = -0.5 * rho * area * cd * velocity * velocityMagnitude;
 
-        body.addForce(force);
         m_force = force;
+        body.addForce(force);
     }
 
     const std::string& getName() const override { return m_name; }

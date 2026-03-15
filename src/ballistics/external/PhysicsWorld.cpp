@@ -4,6 +4,8 @@
 
 #include "PhysicsWorld.h"
 
+#include <algorithm>
+
 namespace BulletPhysics {
 namespace ballistics {
 namespace external {
@@ -20,7 +22,12 @@ void PhysicsWorld::addEnvironment(std::unique_ptr<environments::IEnvironment> en
 {
     if (environment)
     {
-        m_environments.push_back(std::move(environment));
+        int priority = environment->getPriority();
+        auto it = std::upper_bound(m_environments.begin(), m_environments.end(), priority,
+            [](int p, const std::unique_ptr<environments::IEnvironment>& e) {
+                return p < e->getPriority();
+            });
+        m_environments.insert(it, std::move(environment));
     }
 }
 

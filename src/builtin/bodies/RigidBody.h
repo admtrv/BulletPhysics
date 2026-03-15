@@ -48,26 +48,11 @@ private:
 // concrete projectile rigid body implementation
 class ProjectileRigidBody : public RigidBody, public projectile::IProjectileBody {
 public:
-    ProjectileRigidBody() : RigidBody(), m_specs{1.0} {}
     explicit ProjectileRigidBody(const projectile::ProjectileSpecs& specs);
 
     std::unique_ptr<IPhysicsBody> clone() const override;
 
-    // projectile specifications
     const projectile::ProjectileSpecs& getProjectileSpecs() const override { return m_specs; }
-
-    // override to calculate spin rate on first velocity set
-    void setVelocity(const math::Vec3& vel) override
-    {
-        RigidBody::setVelocity(vel);
-        setInitialSpinRate(vel.length());
-    }
-    void setVelocityFromAngles(double speed, double elevationDeg, double azimuthDeg) override
-    {
-        RigidBody::setVelocityFromAngles(speed, elevationDeg, azimuthDeg);
-        setInitialSpinRate(speed);
-    }
-    void setInitialSpinRate(double velocity);
 
 private:
     projectile::ProjectileSpecs m_specs;

@@ -5,8 +5,8 @@
 #pragma once
 
 #include "math/Vec3.h"
+#include "Constants.h"
 
-#include <optional>
 
 namespace BulletPhysics {
 namespace ballistics {
@@ -16,32 +16,32 @@ namespace external {
 class PhysicsContext {
 public:
     // atmosphere context
-    std::optional<double> airDensity;        // kg/m^3
-    std::optional<double> airTemperature;    // K
-    std::optional<double> airPressure;       // Pa
-    std::optional<double> airHumidity;       // % (relative humidity 0-100)
-    std::optional<math::Vec3> wind;          // m/s
+    double airDensity = constants::BASE_ATMOSPHERIC_DENSITY;        // kg/m^3
+    double airTemperature = constants::BASE_TEMPERATURE;            // K
+    double airPressure = constants::BASE_ATMOSPHERIC_PRESSURE;      // Pa
+    double airHumidity = constants::DEFAULT_RELATIVE_HUMIDITY;      // % (0-100)
+    math::Vec3 wind = constants::DEFAULT_WIND;                      // m/s
 
     // geographic context
-    std::optional<double> latitude;         // rad
-    std::optional<double> longitude;        // rad
-    std::optional<double> altitude;         // m (above sea level)
+    double latitude = constants::DEFAULT_LATITUDE;          // rad
+    double longitude = constants::DEFAULT_LONGITUDE;        // rad
+    double altitude = constants::DEFAULT_ALTITUDE;          // m (above sea level)
 
-    std::optional<double> gravity;          // m/s^2 (gravity acceleration magnitude)
+    math::Vec3 gravity = constants::GRAVITY;        // m/s^2
 
     void reset()
     {
-        airDensity.reset();
-        airTemperature.reset();
-        airPressure.reset();
-        airHumidity.reset();
-        wind.reset();
+        airDensity = constants::BASE_ATMOSPHERIC_DENSITY;
+        airTemperature = constants::BASE_TEMPERATURE;
+        airPressure = constants::BASE_ATMOSPHERIC_PRESSURE;
+        airHumidity = constants::DEFAULT_RELATIVE_HUMIDITY;
+        wind = constants::DEFAULT_WIND;
 
-        latitude.reset();
-        longitude.reset();
-        altitude.reset();
+        latitude = constants::DEFAULT_LATITUDE;
+        longitude = constants::DEFAULT_LONGITUDE;
+        altitude = constants::DEFAULT_ALTITUDE;
 
-        gravity.reset();
+        gravity = constants::GRAVITY;
     }
 };
 

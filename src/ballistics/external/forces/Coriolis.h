@@ -16,13 +16,7 @@ public:
 
     void apply(IPhysicsBody& body, PhysicsContext& context) override
     {
-        // requires Geographic environment
-        if (!context.latitude.has_value())
-        {
-            return;
-        }
-
-        double latitude = *context.latitude;
+        double latitude = context.latitude;
         math::Vec3 velocity = body.getVelocity();
 
         // Earth's angular velocity vector in ENU frame
@@ -39,8 +33,9 @@ public:
         if (body.getMass() > 0.0)
         {
             math::Vec3 force = coriolisAccel * body.getMass();
-            body.addForce(force);
+
             m_force = force;
+            body.addForce(force);
         }
     }
 

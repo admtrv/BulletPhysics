@@ -11,30 +11,15 @@ namespace ballistics {
 namespace external {
 namespace forces {
 
-// helper function to check if specs have required data for spin drift calculations
-static bool hasSpinDriftData(const projectile::ProjectileSpecs& specs)
-{
-    if (!specs.diameter.has_value()) return false;
-    if (!specs.area.has_value()) return false;
-
-    if (!specs.spinSpecs.has_value()) return false;
-    const auto& spin = *specs.spinSpecs;
-
-    if (!spin.momentOfInertia.has_value()) return false;
-    if (!spin.spinRate.has_value()) return false;
-
-    return true;
-}
-
 // yaw of repose: alpha_e = 2 * Ix * p * (g x V) / (rho * S * d * V^4 * C_M_alpha)
 static math::Vec3 calculateYawOfRepose(const projectile::ProjectileSpecs& specs, const PhysicsContext& context, const math::Vec3& velocity)
 {
-    // requers projectile spin specs
-    if (!hasSpinDriftData(specs))
+    // requires projectile spin specs
+    if (!specs.muzzleSpecs.has_value())
     {
         return {0.0, 0.0, 0.0};
     }
-    const auto& spinSpecs = specs.spinSpecs.value();
+    const auto& muzzleSpecs = *specs.muzzleSpecs;
 
     // velocity
     double velocityMagnitude = velocity.length();
@@ -44,24 +29,24 @@ static math::Vec3 calculateYawOfRepose(const projectile::ProjectileSpecs& specs,
     }
 
     // denominator
-    double rho = context.airDensity.value_or(constants::BASE_ATMOSPHERIC_DENSITY);
-    double S = specs.area.value();
-    double d = specs.diameter.value();
+    double rho = context.airDensity;
+    double S = specs.area;
+    double d = specs.diameter;
     double velocityMagnitudePow4 = velocityMagnitude * velocityMagnitude * velocityMagnitude * velocityMagnitude;
-    double C_M_alpha = spinSpecs.overtuningCoefficient;
+    double C_M_alpha = muzzleSpecs.overtuningCoefficient;
 
     double denominator = rho * S * d * velocityMagnitudePow4 * C_M_alpha;
 
     // numerator
-    double Ix = spinSpecs.momentOfInertia.value();
-    double p = spinSpecs.spinRate.value();
-    math::Vec3 g = constants::GRAVITY;
+    double Ix = muzzleSpecs.momentOfInertia;
+    double p = muzzleSpecs.spinRate;
+    math::Vec3 g = context.gravity;
     math::Vec3 gCrossV = g.cross(velocity);
 
     math::Vec3 numerator = 2.0 * Ix * p * gCrossV;
 
     // final
-    int spinSign = spinSpecs.riflingSpecs->direction == projectile::RiflingSpecs::Direction::RIGHT ? 1 : -1;
+    int spinSign = muzzleSpecs.direction == projectile::Direction::RIGHT ? 1 : -1;
 
     return spinSign * numerator / denominator;
 }
@@ -71,20 +56,19 @@ public:
     void apply(IPhysicsBody& body, PhysicsContext& context) override
     {
         // requires projectile body
-        auto* proj = dynamic_cast<projectile::IProjectileBody*>(&body);
-        if (!proj)
+        auto* projectile = dynamic_cast<projectile::IProjectileBody*>(&body);
+        if (!projectile)
         {
             return;
         }
 
-        const auto& specs = proj->getProjectileSpecs();
-
-        // requers projectile spin specs
-        if (!hasSpinDriftData(specs))
+        // requires projectile spin specs
+        const auto& specs = projectile->getProjectileSpecs();
+        if (!specs.muzzleSpecs.has_value())
         {
             return;
         }
-        const auto& spinSpecs = specs.spinSpecs.value();
+        const auto& muzzleSpecs = *specs.muzzleSpecs;
 
         // velocity
         math::Vec3 velocity = body.getVelocity();
@@ -96,9 +80,9 @@ public:
         double velocityMagnitudePow2 = velocityMagnitude * velocityMagnitude;
 
         // data
-        double rho = context.airDensity.value_or(constants::BASE_ATMOSPHERIC_DENSITY);
-        double S = specs.area.value();
-        double C_L_alpha = spinSpecs.liftCoefficient;
+        double rho = context.airDensity;
+        double S = specs.area;
+        double C_L_alpha = muzzleSpecs.liftCoefficient;
 
         // yaw of repose
         math::Vec3 alpha_e = calculateYawOfRepose(specs, context, velocity);
@@ -106,8 +90,8 @@ public:
         // F_l = 1/2 * rho * S * C_L_alpha * V^2 * alpha_e
         math::Vec3 force = 0.5 * rho * S * C_L_alpha * velocityMagnitudePow2 * alpha_e;
 
-        body.addForce(force);
         m_force = force;
+        body.addForce(force);
     }
 
     const std::string& getName() const override { return m_name; }
@@ -129,14 +113,13 @@ public:
             return;
         }
 
+        // requires projectile spin specs
         const auto& specs = proj->getProjectileSpecs();
-
-        // requers projectile spin specs
-        if (!hasSpinDriftData(specs))
+        if (!specs.muzzleSpecs.has_value())
         {
             return;
         }
-        const auto& spinSpecs = specs.spinSpecs.value();
+        const auto& muzzleSpecs = *specs.muzzleSpecs;
 
         // velocity
         math::Vec3 velocity = body.getVelocity();
@@ -147,11 +130,11 @@ public:
         }
 
         // data
-        double rho = context.airDensity.value_or(constants::BASE_ATMOSPHERIC_DENSITY);
-        double d = specs.diameter.value();
-        double S = specs.area.value();
-        double p = spinSpecs.spinRate.value();
-        double C_mag_f = spinSpecs.magnusCoefficient;
+        double rho = context.airDensity;
+        double d = specs.diameter;
+        double S = specs.area;
+        double p = muzzleSpecs.spinRate;
+        double C_mag_f = muzzleSpecs.magnusCoefficient;
 
         // yaw of repose
         math::Vec3 alpha_e = calculateYawOfRepose(specs, context, velocity);
@@ -160,8 +143,8 @@ public:
         // F_m = -1/2 * rho * S * d * p * C_mag_f * (alpha_e x V)
         math::Vec3 force = -0.5 * rho * S * d * p * C_mag_f * alphaCrossV;
 
-        body.addForce(force);
         m_force = force;
+        body.addForce(force);
     }
 
     const std::string& getName() const override { return m_name; }

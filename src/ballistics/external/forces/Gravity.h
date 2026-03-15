@@ -18,19 +18,7 @@ public:
     {
         if (body.getMass() > 0.0)
         {
-            math::Vec3 force;
-
-            // get corrected gravity acceleration from context or use classic constant
-            if (context.gravity.has_value())
-            {
-                math::Vec3 g = math::Vec3{0.0, -*context.gravity, 0.0};
-                force = body.getMass() * g;
-            }
-            else
-            {
-                math::Vec3 g = constants::GRAVITY;
-                force = body.getMass() * g;
-            }
+            math::Vec3 force = body.getMass() * context.gravity;
 
             m_force = force;
             body.addForce(force);

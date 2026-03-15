@@ -38,10 +38,17 @@ inline constexpr double EARTH_SEMI_MAJOR_AXIS = 6378137.0;              // m (a,
 inline constexpr double EARTH_SEMI_MINOR_AXIS = 6356752.314245;         // m (b, or polar radius)
 inline constexpr double EARTH_ECCENTRICITY_SQUARED = 6.69437999014e-3;  // e^2
 
+// default context constants
+inline math::Vec3 DEFAULT_WIND{0.0, 0.0, 0.0};
+static constexpr double DEFAULT_RELATIVE_HUMIDITY = 0.0;
+static constexpr double DEFAULT_LATITUDE = 0.0;
+static constexpr double DEFAULT_LONGITUDE = 0.0;
+static constexpr double DEFAULT_ALTITUDE = 0.0;
+
 // default projectile constants
-static constexpr double DEFAULT_DIAMETER = 0.00762;
+static constexpr double DEFAULT_DIAMETER = 0.01;
 static constexpr double DEFAULT_AREA = math::constants::PI * DEFAULT_DIAMETER * DEFAULT_DIAMETER / 4;     // m^2
-static constexpr double DEFAULT_CD = 0.3;
+static constexpr double DEFAULT_CD = 0.5;
 static constexpr double DEFAULT_C_M_ALPHA = 4.0;
 static constexpr double DEFAULT_C_L_ALPHA = 0.10;
 static constexpr double DEFAULT_C_MAG_F = 0.10;

@@ -49,9 +49,9 @@ private:
     // barometric formula exponent: g / (R * L)
     static inline const double BAROMETRIC_EXP = constants::GRAVITY.length() / (constants::GAS_CONSTANT_DRY_AIR * constants::LAPSE_RATE);
 
-    double m_groundY;
     double m_baseTemperature;      // K
     double m_basePressure;         // Pa
+    double m_groundY;
 };
 
 } // namespace environments

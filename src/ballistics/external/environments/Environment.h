@@ -23,6 +23,9 @@ public:
     virtual void update(IPhysicsBody& body, PhysicsContext& context) = 0;
 
     virtual const std::string& getName() const = 0;
+
+    // evaluation order: lower priority runs first (like z-index in graphics)
+    virtual int getPriority() const { return 0; }
 };
 
 } // namespace environments

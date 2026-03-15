@@ -15,9 +15,12 @@ namespace environments {
 // provides geographic context and gravity corrections based on actual position from Earth center
 class Geographic : public IEnvironment {
 public:
-    explicit Geographic(double referenceLatitude, double referenceLongitude, double groundY = 0.0)
-        : m_reference(referenceLatitude, referenceLongitude, 0.0)
-        , m_groundY(groundY)
+    explicit Geographic(
+        double referenceLatitude = constants::DEFAULT_LATITUDE,
+        double referenceLongitude = constants::DEFAULT_LONGITUDE,
+        double groundY = 0.0)
+            : m_reference(referenceLatitude, referenceLongitude, 0.0)
+            , m_groundY(groundY)
     {}
 
     void update(IPhysicsBody& body, PhysicsContext& context) override
@@ -33,7 +36,8 @@ public:
         // correct gravity
         geography::GeographicPosition currentPosition(m_reference.latitude, m_reference.longitude, altitudeAbove);
 
-        context.gravity = geography::gravitationalAccelerationAtGeodetic(currentPosition);
+        double g = geography::gravitationalAccelerationAtGeodetic(currentPosition);
+        context.gravity = math::Vec3{0.0, -g, 0.0};
     }
 
     const std::string& getName() const override { return m_name; }

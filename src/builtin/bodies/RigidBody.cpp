@@ -53,37 +53,6 @@ std::unique_ptr<IPhysicsBody> RigidBody::clone() const
 ProjectileRigidBody::ProjectileRigidBody(const projectile::ProjectileSpecs& specs) : RigidBody(), m_specs(specs)
 {
     setMass(specs.mass);
-
-    if (!m_specs.area.has_value() && m_specs.diameter.has_value())
-    {
-        m_specs.area = projectile::ProjectileSpecs::calculateArea(m_specs.diameter.value());
-    }
-
-    if (m_specs.spinSpecs)
-    {
-        auto& spinSpecs = *m_specs.spinSpecs;
-
-        if (!spinSpecs.momentOfInertia && m_specs.diameter)
-        {
-            spinSpecs.momentOfInertia = projectile::ProjectileSpecs::calculateMomentOfInertiaX(m_specs.mass, *m_specs.diameter);
-        }
-    }
-}
-
-// auto-calculate spin rate on first velocity set if not already set
-void ProjectileRigidBody::setInitialSpinRate(double velocity)
-{
-    if (!m_specs.spinSpecs)
-    {
-        return;
-    }
-
-    auto& spinSpecs = *m_specs.spinSpecs;
-
-    if (!spinSpecs.spinRate && spinSpecs.riflingSpecs && m_specs.diameter)
-    {
-        spinSpecs.spinRate = projectile::ProjectileSpecs::calculateSpinRate(velocity, spinSpecs.riflingSpecs->twistRate, *m_specs.diameter);
-    }
 }
 
 std::unique_ptr<IPhysicsBody> ProjectileRigidBody::clone() const

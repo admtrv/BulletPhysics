@@ -10,11 +10,12 @@ set(LIB_NAME ${PROJECT_NAME})
 
 file(GLOB_RECURSE SOURCES CONFIGURE_DEPENDS "${CMAKE_CURRENT_SOURCE_DIR}/*.cpp")
 list(FILTER SOURCES EXCLUDE REGEX ".*/.*build.*/.*")
+list(FILTER SOURCES EXCLUDE REGEX ".*/tests/.*")
 
 add_library(${LIB_NAME} STATIC ${SOURCES})
 
 # public includes
 target_include_directories(${LIB_NAME} PUBLIC ${CMAKE_CURRENT_SOURCE_DIR}/src)
 
-# define paths
-target_compile_definitions(${LIB_NAME} PUBLIC DRAG_DATA_DIR="${CMAKE_CURRENT_SOURCE_DIR}/assets/data/drag") # drag curves files path
+# tests
+add_subdirectory(tests)

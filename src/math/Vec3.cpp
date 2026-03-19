@@ -83,14 +83,14 @@ Vec3 Vec3::cross(const Vec3& rhs) const
     };
 }
 
-Vec3 Vec3::crossEUN(const Vec3& rhs) const
+Vec3 Vec3::crossRight(const Vec3& rhs) const
 {
-    // physical cross product for left-handed (East, Up, North) basis
-    return {
-        z * rhs.y - y * rhs.z,
-        x * rhs.z - z * rhs.x,
-        y * rhs.x - x * rhs.y
-    };
+    return cross(rhs);
+}
+
+Vec3 Vec3::crossLeft(const Vec3& rhs) const
+{
+    return -1.0 * cross(rhs);
 }
 
 } // namespace math

@@ -22,7 +22,7 @@ void Coriolis::apply(IPhysicsBody& body, PhysicsContext& context)
     math::Vec3 omega(0.0, omegaUp, omegaNorth);
 
     // Coriolis acceleration: a = -2 * (omega x v)
-    math::Vec3 coriolisAccel = -2.0 * omega.cross(velocity);
+    math::Vec3 coriolisAccel = -2.0 * omega.crossEUN(velocity);
 
     // apply force: F = m * a
     if (body.getMass() > 0.0)

@@ -39,7 +39,7 @@ static math::Vec3 calculateYawOfRepose(const projectile::ProjectileSpecs& specs,
     double Ix = muzzleSpecs.momentOfInertia;
     double p = muzzleSpecs.spinRate;
     math::Vec3 g = context.gravity;
-    math::Vec3 gCrossV = g.cross(velocity);
+    math::Vec3 gCrossV = g.crossEUN(velocity);
 
     math::Vec3 numerator = 2.0 * Ix * p * gCrossV;
 
@@ -124,7 +124,7 @@ void Magnus::apply(IPhysicsBody& body, PhysicsContext& context)
 
     // yaw of repose
     math::Vec3 alpha_e = calculateYawOfRepose(specs, context, velocity);
-    math::Vec3 alphaCrossV = alpha_e.cross(velocity);
+    math::Vec3 alphaCrossV = alpha_e.crossEUN(velocity);
 
     // F_m = -1/2 * rho * S * d * p * C_mag_f * (alpha_e x V)
     math::Vec3 force = -0.5 * rho * S * d * p * C_mag_f * alphaCrossV;

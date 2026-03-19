@@ -28,6 +28,7 @@ struct Vec3 {
     Vec3 normalized() const;
     double dot(const Vec3& rhs) const;
     Vec3 cross(const Vec3& rhs) const;
+    Vec3 crossEUN(const Vec3& rhs) const;
 };
 
 Vec3 operator*(double scalar, const Vec3& vec);

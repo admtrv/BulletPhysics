@@ -43,27 +43,12 @@ StandardDragModel::StandardDragModel(DragCurveModel model) : m_model(model)
 {
     switch (model)
     {
-        case DragCurveModel::G1:
-            m_curve = {data::G1, data::G1_SIZE};
-            break;
-        case DragCurveModel::G2:
-            m_curve = {data::G2, data::G2_SIZE};
-            break;
-        case DragCurveModel::G5:
-            m_curve = {data::G5, data::G5_SIZE};
-            break;
-        case DragCurveModel::G6:
-            m_curve = {data::G6, data::G6_SIZE};
-            break;
-        case DragCurveModel::G7:
-            m_curve = {data::G7, data::G7_SIZE};
-            break;
-        case DragCurveModel::G8:
-            m_curve = {data::G8, data::G8_SIZE};
-            break;
-        case DragCurveModel::GL:
-            m_curve = {data::GL, data::GL_SIZE};
-            break;
+        #define X(name) \
+            case DragCurveModel::name: \
+                m_curve = {data::name, data::name##_SIZE}; \
+                break;
+        DRAG_CURVE_MODELS(X)
+        #undef X
         default:
             break;
     }

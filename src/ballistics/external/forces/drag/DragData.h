@@ -20,6 +20,17 @@ struct DragPoint {
     double cd;
 };
 
+// x-macro: all standard drag curve models
+// add new model here -> array + size + enum + switch update automatically
+#define DRAG_CURVE_MODELS(X) \
+    X(G1) \
+    X(G2) \
+    X(G5) \
+    X(G6) \
+    X(G7) \
+    X(G8) \
+    X(GL)
+
 namespace data {
 
 inline constexpr DragPoint G1[] = {
@@ -44,7 +55,6 @@ inline constexpr DragPoint G1[] = {
     {3.90, 0.5010}, {4.00, 0.5006}, {4.20, 0.4998}, {4.40, 0.4995},
     {4.60, 0.4992}, {4.80, 0.4990}, {5.00, 0.4988},
 };
-inline constexpr size_t G1_SIZE = sizeof(G1) / sizeof(G1[0]);
 
 inline constexpr DragPoint G2[] = {
     {0.00, 0.2303}, {0.05, 0.2298}, {0.10, 0.2287}, {0.15, 0.2271},
@@ -70,7 +80,6 @@ inline constexpr DragPoint G2[] = {
     {4.20, 0.1851}, {4.40, 0.1794}, {4.60, 0.1741}, {4.80, 0.1693},
     {5.00, 0.1648},
 };
-inline constexpr size_t G2_SIZE = sizeof(G2) / sizeof(G2[0]);
 
 inline constexpr DragPoint G5[] = {
     {0.00, 0.1710}, {0.05, 0.1719}, {0.10, 0.1727}, {0.15, 0.1732},
@@ -93,7 +102,6 @@ inline constexpr DragPoint G5[] = {
     {3.80, 0.2624}, {3.90, 0.2588}, {4.00, 0.2553}, {4.20, 0.2488},
     {4.40, 0.2429}, {4.60, 0.2376}, {4.80, 0.2326}, {5.00, 0.2280},
 };
-inline constexpr size_t G5_SIZE = sizeof(G5) / sizeof(G5[0]);
 
 inline constexpr DragPoint G6[] = {
     {0.00, 0.2617}, {0.05, 0.2553}, {0.10, 0.2491}, {0.15, 0.2432},
@@ -117,7 +125,6 @@ inline constexpr DragPoint G6[] = {
     {3.90, 0.1905}, {4.00, 0.1866}, {4.20, 0.1794}, {4.40, 0.1730},
     {4.60, 0.1673}, {4.80, 0.1621}, {5.00, 0.1574},
 };
-inline constexpr size_t G6_SIZE = sizeof(G6) / sizeof(G6[0]);
 
 inline constexpr DragPoint G7[] = {
     {0.00, 0.1198}, {0.05, 0.1197}, {0.10, 0.1196}, {0.15, 0.1194},
@@ -142,7 +149,6 @@ inline constexpr DragPoint G7[] = {
     {3.80, 0.2017}, {3.90, 0.1975}, {4.00, 0.1935}, {4.20, 0.1861},
     {4.40, 0.1793}, {4.60, 0.1730}, {4.80, 0.1672}, {5.00, 0.1618},
 };
-inline constexpr size_t G7_SIZE = sizeof(G7) / sizeof(G7[0]);
 
 inline constexpr DragPoint G8[] = {
     {0.00, 0.2105}, {0.05, 0.2105}, {0.10, 0.2104}, {0.15, 0.2104},
@@ -166,7 +172,6 @@ inline constexpr DragPoint G8[] = {
     {4.00, 0.1950}, {4.20, 0.1890}, {4.40, 0.1837}, {4.60, 0.1791},
     {4.80, 0.1750}, {5.00, 0.1713},
 };
-inline constexpr size_t G8_SIZE = sizeof(G8) / sizeof(G8[0]);
 
 inline constexpr DragPoint GL[] = {
     {0.00, 0.2282}, {0.05, 0.2282}, {0.10, 0.2282}, {0.15, 0.2282},
@@ -191,7 +196,10 @@ inline constexpr DragPoint GL[] = {
     {4.20, 0.4415}, {4.40, 0.4323}, {4.60, 0.4238}, {4.80, 0.4157},
     {5.00, 0.4082},
 };
-inline constexpr size_t GL_SIZE = sizeof(GL) / sizeof(GL[0]);
+
+#define X(name) inline constexpr size_t name##_SIZE = sizeof(name) / sizeof(name[0]);
+DRAG_CURVE_MODELS(X)
+#undef X
 
 } // namespace data
 } // namespace drag

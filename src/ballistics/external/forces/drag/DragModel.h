@@ -15,13 +15,9 @@ namespace forces {
 namespace drag {
 
 enum class DragCurveModel {
-    G1,
-    G2,
-    G5,
-    G6,
-    G7,
-    G8,
-    GL,
+    #define X(name) name,
+    DRAG_CURVE_MODELS(X)
+    #undef X
     CUSTOM
 };
 

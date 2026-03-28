@@ -84,6 +84,16 @@ environments::IEnvironment* PhysicsWorld::getEnvironment(const std::string& name
     return nullptr;
 }
 
+void PhysicsWorld::setCoordinateMapping(const geography::CoordinateMapping& mapping)
+{
+    m_coordinateMapping = mapping;
+}
+
+const geography::CoordinateMapping& PhysicsWorld::getCoordinateMapping() const
+{
+    return m_coordinateMapping;
+}
+
 } // namespace external
 } // namespace ballistics
 } // namespace BulletPhysics

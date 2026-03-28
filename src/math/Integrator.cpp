@@ -3,9 +3,35 @@
  */
 
 #include "Integrator.h"
+#include "geography/CoordinateMapping.h"
 
 namespace BulletPhysics {
 namespace math {
+
+// convert body state between user space and internal EUN
+static void bodyToInternal(IPhysicsBody& body, const geography::CoordinateMapping& m)
+{
+    if (!m.isIdentity())
+    {
+        body.setPosition(m.toInternal(body.getPosition()));
+        body.setVelocity(m.toInternal(body.getVelocity()));
+    }
+}
+
+static void bodyToExternal(IPhysicsBody& body, const geography::CoordinateMapping& m)
+{
+    if (!m.isIdentity())
+    {
+        body.setPosition(m.toExternal(body.getPosition()));
+        body.setVelocity(m.toExternal(body.getVelocity()));
+    }
+}
+
+static const geography::CoordinateMapping& getMapping(ballistics::external::PhysicsWorld* world)
+{
+    static const geography::CoordinateMapping identity = geography::mappings::EUN();
+    return world ? world->getCoordinateMapping() : identity;
+}
 
 // calculate acceleration at given state
 Vec3 calcAccel(IPhysicsBody& body, ballistics::external::PhysicsWorld* world, double dt, const Vec3& pos, const Vec3& vel)
@@ -30,6 +56,9 @@ Vec3 calcAccel(IPhysicsBody& body, ballistics::external::PhysicsWorld* world, do
 
 void EulerIntegrator::step(IPhysicsBody& body, ballistics::external::PhysicsWorld* world, double dt)
 {
+    const auto& mapping = getMapping(world);
+    bodyToInternal(body, mapping);
+
     // clear previous forces
     body.clearForces();
 
@@ -53,10 +82,15 @@ void EulerIntegrator::step(IPhysicsBody& body, ballistics::external::PhysicsWorl
     body.setPosition(r);
     body.setVelocity(v);
     body.clearForces();
+
+    bodyToExternal(body, mapping);
 }
 
 void MidpointIntegrator::step(IPhysicsBody& body, ballistics::external::PhysicsWorld* world, double dt)
 {
+    const auto& mapping = getMapping(world);
+    bodyToInternal(body, mapping);
+
     // clear previous forces
     body.clearForces();
 
@@ -81,10 +115,15 @@ void MidpointIntegrator::step(IPhysicsBody& body, ballistics::external::PhysicsW
     body.setPosition(r);
     body.setVelocity(v);
     body.clearForces();
+
+    bodyToExternal(body, mapping);
 }
 
 void RK4Integrator::step(IPhysicsBody& body, ballistics::external::PhysicsWorld* world, double dt)
 {
+    const auto& mapping = getMapping(world);
+    bodyToInternal(body, mapping);
+
     // clear previous forces
     body.clearForces();
 
@@ -116,6 +155,8 @@ void RK4Integrator::step(IPhysicsBody& body, ballistics::external::PhysicsWorld*
     body.setPosition(r);
     body.setVelocity(v);
     body.clearForces();
+
+    bodyToExternal(body, mapping);
 }
 
 } // namespace math

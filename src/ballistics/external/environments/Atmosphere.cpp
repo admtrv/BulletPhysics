@@ -17,7 +17,7 @@ Atmosphere::Atmosphere(double baseTemperature, double basePressure, double groun
 void Atmosphere::update(IPhysicsBody& body, PhysicsContext& context)
 {
     // calculate altitude above ground level and crop it on troposphere
-    double altitude = std::max(0.0, std::min(body.getPosition().y - m_groundY, constants::ISA_TROPOSPHERE_MAX));
+    double altitude = std::max(0.0, std::min(body.getPosition().z - m_groundY, constants::ISA_TROPOSPHERE_MAX));
 
     // linear temperature decrease: T = T0 - L * h
     double temperature = m_baseTemperature - constants::ISA_TEMPERATURE_LAPSE_RATE * altitude;

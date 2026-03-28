@@ -15,7 +15,7 @@ namespace constants {
  */
 
 // physical
-inline math::Vec3 GRAVITY{0.0, -9.80665, 0.0};
+inline math::Vec3 GRAVITY{0.0, 0.0, -9.80665};
 
 // conversion
 inline constexpr double CELSIUS_TO_KELVIN = 273.15;

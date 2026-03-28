@@ -7,8 +7,8 @@
 namespace BulletPhysics {
 namespace geography {
 
-CoordinateMapping::CoordinateMapping(Axis userEast, Axis userUp, Axis userNorth)
-    : m_userEast(userEast), m_userUp(userUp), m_userNorth(userNorth) {}
+CoordinateMapping::CoordinateMapping(Axis userEast, Axis userNorth, Axis userUp)
+    : m_userEast(userEast), m_userNorth(userNorth), m_userUp(userUp) {}
 
 double CoordinateMapping::readAxis(const math::Vec3& v, Axis a)
 {
@@ -57,23 +57,36 @@ void CoordinateMapping::writeAxis(math::Vec3& v, Axis a, double val)
 
 math::Vec3 CoordinateMapping::toInternal(const math::Vec3& v) const
 {
-    return {readAxis(v, m_userEast), readAxis(v, m_userUp), readAxis(v, m_userNorth)};
+    // v is user-space, extract East, North, Up into internal ENU
+    return {readAxis(v, m_userEast), readAxis(v, m_userNorth), readAxis(v, m_userUp)};
 }
 
 math::Vec3 CoordinateMapping::toExternal(const math::Vec3& v) const
 {
-    // v is EUN: v.x=East, v.y=Up, v.z=North
+    // v is ENU: v.x=East, v.y=North, v.z=Up
     // scatter into user axes
     math::Vec3 out{0, 0, 0};
     writeAxis(out, m_userEast, v.x);
-    writeAxis(out, m_userUp, v.y);
-    writeAxis(out, m_userNorth, v.z);
+    writeAxis(out, m_userNorth, v.y);
+    writeAxis(out, m_userUp, v.z);
     return out;
 }
 
 bool CoordinateMapping::isIdentity() const
 {
-    return m_userEast == Axis::POS_X && m_userUp == Axis::POS_Y && m_userNorth == Axis::POS_Z;
+    return m_userEast == Axis::POS_X && m_userNorth == Axis::POS_Y && m_userUp == Axis::POS_Z;
+}
+
+CoordinateMapping CoordinateMapping::s_active = mappings::ENU();
+
+void CoordinateMapping::set(const CoordinateMapping& mapping)
+{
+    s_active = mapping;
+}
+
+const CoordinateMapping& CoordinateMapping::get()
+{
+    return s_active;
 }
 
 } // namespace geography

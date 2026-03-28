@@ -3,6 +3,7 @@
  */
 
 #include "Wind.h"
+#include "geography/CoordinateMapping.h"
 
 namespace BulletPhysics {
 namespace ballistics {
@@ -13,7 +14,7 @@ Wind::Wind(const math::Vec3& windVelocity) : m_velocity(windVelocity) {}
 
 void Wind::update(IPhysicsBody& /*body*/, PhysicsContext& context)
 {
-    context.wind = m_velocity;
+    context.wind = geography::CoordinateMapping::get().toInternal(m_velocity);
 }
 
 } // namespace environments

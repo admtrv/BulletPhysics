@@ -112,6 +112,32 @@ while (true)
 }
 ```
 
+## Coordinate Mapping
+
+The library uses the ENU (East-North-Up) coordinate system internally: x=East, y=North, z=Up. If your engine uses a different convention, set a coordinate mapping once at startup. The integrator converts body state at step boundaries automatically.
+
+```cpp
+#include "geography/CoordinateMapping.h"
+
+// presets
+CoordinateMapping::set(mappings::ENU());       // identity (default)
+CoordinateMapping::set(mappings::OpenGL());    // x=East, y=Up, z=-North
+CoordinateMapping::set(mappings::Godot());     // x=East, y=Up, z=-North
+CoordinateMapping::set(mappings::Unreal());    // x=North, y=East, z=Up
+CoordinateMapping::set(mappings::Unity());     // x=East, y=Up, z=North
+CoordinateMapping::set(mappings::Vulkan());    // x=East, y=-Up, z=-North
+```
+
+For a custom system, specify which user axis corresponds to East, North, and Up:
+
+```cpp
+// your system: x=Up, y=North, z=-East
+CoordinateMapping custom(Axis::NEG_Z, Axis::POS_Y, Axis::POS_X);
+CoordinateMapping::set(custom);
+```
+
+With a mapping set, pass positions and velocities in your engine's coordinate system. The library handles internal conversion and returns results in the same user space.
+
 ## Detail Levels
 
 Configure based on required realism level:

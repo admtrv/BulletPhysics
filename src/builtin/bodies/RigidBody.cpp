@@ -4,6 +4,7 @@
 
 #include "RigidBody.h"
 #include "math/Angles.h"
+#include "geography/CoordinateMapping.h"
 
 namespace BulletPhysics {
 namespace builtin {
@@ -36,7 +37,9 @@ void RigidBody::setVelocityFromAngles(double speed, double elevationDeg, double 
     const double sa = std::sin(azim);
     const double ca = std::cos(azim);
 
-    m_velocity = {ce * sa * speed, se * speed, ce * ca * speed};
+    // build velocity in ENU (x=East, y=North, z=Up), then convert to user space
+    math::Vec3 enu = {ce * sa * speed, ce * ca * speed, se * speed};
+    m_velocity = geography::CoordinateMapping::get().toExternal(enu);
 }
 
 void RigidBody::clearForces()

@@ -8,7 +8,7 @@
 namespace BulletPhysics {
 namespace math {
 
-// convert body state between user space and internal EUN
+// convert body state between user space and internal ENU
 static void bodyToInternal(IPhysicsBody& body, const geography::CoordinateMapping& m)
 {
     if (!m.isIdentity())
@@ -27,10 +27,9 @@ static void bodyToExternal(IPhysicsBody& body, const geography::CoordinateMappin
     }
 }
 
-static const geography::CoordinateMapping& getMapping(ballistics::external::PhysicsWorld* world)
+static const geography::CoordinateMapping& getMapping()
 {
-    static const geography::CoordinateMapping identity = geography::mappings::EUN();
-    return world ? world->getCoordinateMapping() : identity;
+    return geography::CoordinateMapping::get();
 }
 
 // calculate acceleration at given state
@@ -56,7 +55,7 @@ Vec3 calcAccel(IPhysicsBody& body, ballistics::external::PhysicsWorld* world, do
 
 void EulerIntegrator::step(IPhysicsBody& body, ballistics::external::PhysicsWorld* world, double dt)
 {
-    const auto& mapping = getMapping(world);
+    const auto& mapping = getMapping();
     bodyToInternal(body, mapping);
 
     // clear previous forces
@@ -88,7 +87,7 @@ void EulerIntegrator::step(IPhysicsBody& body, ballistics::external::PhysicsWorl
 
 void MidpointIntegrator::step(IPhysicsBody& body, ballistics::external::PhysicsWorld* world, double dt)
 {
-    const auto& mapping = getMapping(world);
+    const auto& mapping = getMapping();
     bodyToInternal(body, mapping);
 
     // clear previous forces
@@ -121,7 +120,7 @@ void MidpointIntegrator::step(IPhysicsBody& body, ballistics::external::PhysicsW
 
 void RK4Integrator::step(IPhysicsBody& body, ballistics::external::PhysicsWorld* world, double dt)
 {
-    const auto& mapping = getMapping(world);
+    const auto& mapping = getMapping();
     bodyToInternal(body, mapping);
 
     // clear previous forces

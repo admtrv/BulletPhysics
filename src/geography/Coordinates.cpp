@@ -79,14 +79,14 @@ math::Vec3 ecefToENU(const ECEFPosition& point, const GeographicPosition& refere
     double north = -sinLat * cosLon * dx - sinLat * sinLon * dy + cosLat * dz;
     double up = cosLat * cosLon * dx + cosLat * sinLon * dy + sinLat * dz;
 
-    return math::Vec3(east, up, north);
+    return math::Vec3(east, north, up);
 }
 
 ECEFPosition enuToECEF(const math::Vec3& enu, const GeographicPosition& reference)
 {
     double east = enu.x;
-    double up = enu.y;
-    double north = enu.z;
+    double north = enu.y;
+    double up = enu.z;
 
     double sinLat = std::sin(reference.latitude);
     double cosLat = std::cos(reference.latitude);

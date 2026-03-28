@@ -42,7 +42,7 @@ void apply(forces::Coriolis& coriolis, RigidBody& body, PhysicsContext& context)
 TEST_F(TestCoriolis, NorthernHemisphereNorthwardDeflectsEast)
 {
     context.latitude = math::deg2rad(45.0);
-    body.setVelocity({0.0, 0.0, 800.0});
+    body.setVelocity({0.0, 800.0, 0.0});
 
     apply(coriolis, body, context);
 
@@ -58,7 +58,7 @@ TEST_F(TestCoriolis, NorthernHemisphereEastwardDeflectsSouth)
 
     apply(coriolis, body, context);
 
-    ASSERT_LT(body.getAccumulatedForces().z, 0.0);
+    ASSERT_LT(body.getAccumulatedForces().y, 0.0);
 }
 
 // southern hemisphere: projectile moving north deflects west
@@ -66,7 +66,7 @@ TEST_F(TestCoriolis, NorthernHemisphereEastwardDeflectsSouth)
 TEST_F(TestCoriolis, SouthernHemisphereNorthwardDeflectsWest)
 {
     context.latitude = math::deg2rad(-45.0);
-    body.setVelocity({0.0, 0.0, 800.0}); // north
+    body.setVelocity({0.0, 800.0, 0.0}); // north
 
     apply(coriolis, body, context);
 
@@ -82,7 +82,7 @@ TEST_F(TestCoriolis, SouthernHemisphereEastwardDeflectsNorth)
 
     apply(coriolis, body, context);
 
-    ASSERT_GT(body.getAccumulatedForces().z, 0.0);
+    ASSERT_GT(body.getAccumulatedForces().y, 0.0);
 }
 
 // equator: horizontal motion has no horizontal deflection
@@ -90,7 +90,7 @@ TEST_F(TestCoriolis, SouthernHemisphereEastwardDeflectsNorth)
 TEST_F(TestCoriolis, EquatorNorthwardDeflectsEast)
 {
     context.latitude = math::deg2rad(0.0);
-    body.setVelocity({0.0, 0.0, 800.0}); // north
+    body.setVelocity({0.0, 800.0, 0.0}); // north
 
     apply(coriolis, body, context);
 
@@ -106,7 +106,7 @@ TEST_F(TestCoriolis, EquatorEastwardDeflectsUp)
 
     apply(coriolis, body, context);
 
-    ASSERT_GT(body.getAccumulatedForces().y, 0.0);
+    ASSERT_GT(body.getAccumulatedForces().z, 0.0);
 }
 
 // pole: maximum horizontal deflection
@@ -114,7 +114,7 @@ TEST_F(TestCoriolis, EquatorEastwardDeflectsUp)
 TEST_F(TestCoriolis, NorthPoleNorthwardDeflectsEast)
 {
     context.latitude = math::deg2rad(90.0);
-    body.setVelocity({0.0, 0.0, 800.0}); // north
+    body.setVelocity({0.0, 800.0, 0.0}); // north
 
     apply(coriolis, body, context);
 
@@ -125,7 +125,7 @@ TEST_F(TestCoriolis, NorthPoleNorthwardDeflectsEast)
 
 TEST_F(TestCoriolis, OppositeHemispheresOppositeDeflection)
 {
-    body.setVelocity({0.0, 0.0, 800.0}); // north
+    body.setVelocity({0.0, 800.0, 0.0}); // north
 
     context.latitude = math::deg2rad(45.0);
     apply(coriolis, body, context);

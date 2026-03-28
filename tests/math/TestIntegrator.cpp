@@ -24,7 +24,7 @@ protected:
     void SetUp() override
     {
         body.setMass(1.0);
-        body.setPosition({0.0, 100.0, 0.0});
+        body.setPosition({0.0, 0.0, 100.0});
         body.setVelocity({0.0, 0.0, 0.0});
 
         world.clear();
@@ -44,13 +44,13 @@ void simulate(math::IIntegrator& integrator, IPhysicsBody& body, ballistics::ext
 
 double position(double t)
 {
-    double g = -constants::GRAVITY.y;
+    double g = -constants::GRAVITY.z;
     return 100.0 - 0.5 * g * t * t;
 }
 
 double velocity(double t)
 {
-    return constants::GRAVITY.y * t;
+    return constants::GRAVITY.z * t;
 }
 
 TEST_F(TestIntegrator, EulerFreeFall)
@@ -59,8 +59,8 @@ TEST_F(TestIntegrator, EulerFreeFall)
 
     simulate(euler, body, world, 0.001, 1000);
 
-    ASSERT_NEAR(body.getPosition().y, position(1.0), 0.1);
-    ASSERT_NEAR(body.getVelocity().y, velocity(1.0), 0.1);
+    ASSERT_NEAR(body.getPosition().z, position(1.0), 0.1);
+    ASSERT_NEAR(body.getVelocity().z, velocity(1.0), 0.1);
 }
 
 TEST_F(TestIntegrator, MidpointFreeFall)
@@ -69,8 +69,8 @@ TEST_F(TestIntegrator, MidpointFreeFall)
 
     simulate(midpoint, body, world, 0.001, 1000);
 
-    ASSERT_NEAR(body.getPosition().y, position(1.0), 0.01);
-    ASSERT_NEAR(body.getVelocity().y, velocity(1.0), 0.01);
+    ASSERT_NEAR(body.getPosition().z, position(1.0), 0.01);
+    ASSERT_NEAR(body.getVelocity().z, velocity(1.0), 0.01);
 }
 
 TEST_F(TestIntegrator, RK4FreeFall)
@@ -79,8 +79,8 @@ TEST_F(TestIntegrator, RK4FreeFall)
 
     simulate(rk4, body, world, 0.001, 1000);
 
-    ASSERT_NEAR(body.getPosition().y, position(1.0), 0.001);
-    ASSERT_NEAR(body.getVelocity().y, velocity(1.0), 0.001);
+    ASSERT_NEAR(body.getPosition().z, position(1.0), 0.001);
+    ASSERT_NEAR(body.getVelocity().z, velocity(1.0), 0.001);
 }
 
 TEST_F(TestIntegrator, FreeFallNoHorizontalMotion)
@@ -90,9 +90,9 @@ TEST_F(TestIntegrator, FreeFallNoHorizontalMotion)
     simulate(rk4, body, world, 0.01, 100);
 
     ASSERT_DOUBLE_EQ(body.getPosition().x, 0.0);
-    ASSERT_DOUBLE_EQ(body.getPosition().z, 0.0);
+    ASSERT_DOUBLE_EQ(body.getPosition().y, 0.0);
     ASSERT_DOUBLE_EQ(body.getVelocity().x, 0.0);
-    ASSERT_DOUBLE_EQ(body.getVelocity().z, 0.0);
+    ASSERT_DOUBLE_EQ(body.getVelocity().y, 0.0);
 }
 
 TEST_F(TestIntegrator, NullWorldUniformMotion)

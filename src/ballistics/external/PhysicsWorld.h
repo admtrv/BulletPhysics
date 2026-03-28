@@ -6,7 +6,6 @@
 
 #include "ballistics/external/forces/Force.h"
 #include "ballistics/external/environments/Environment.h"
-#include "geography/CoordinateMapping.h"
 
 #include <vector>
 
@@ -43,10 +42,6 @@ public:
     const std::vector<std::unique_ptr<forces::IForce>>& getForces() const { return m_forces; }
     const std::vector<std::unique_ptr<environments::IEnvironment>>& getEnvironments() const { return m_environments; }
 
-    // coordinate mapping
-    void setCoordinateMapping(const geography::CoordinateMapping& mapping);
-    const geography::CoordinateMapping& getCoordinateMapping() const;
-
     // counts
     size_t forceCount() const { return m_forces.size(); }
     size_t environmentCount() const { return m_environments.size(); }
@@ -56,7 +51,6 @@ private:
     std::vector<std::unique_ptr<environments::IEnvironment>> m_environments;
 
     PhysicsContext m_context;
-    geography::CoordinateMapping m_coordinateMapping = geography::mappings::EUN();
 };
 
 } // namespace external

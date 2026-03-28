@@ -14,7 +14,7 @@ Geographic::Geographic(double referenceLatitude, double referenceLongitude, doub
 void Geographic::update(IPhysicsBody& body, PhysicsContext& context)
 {
     // calculate altitude above ground level
-    double altitude = std::max(0.0, body.getPosition().y - m_groundY);
+    double altitude = std::max(0.0, body.getPosition().z - m_groundY);
 
     // store geographic information
     context.latitude = m_reference.latitude;
@@ -26,7 +26,7 @@ void Geographic::update(IPhysicsBody& body, PhysicsContext& context)
     double g = geography::gravitationalAccelerationAtGeodetic(currentPosition);
 
     // store corrected gravity
-    context.gravity = math::Vec3{0.0, -g, 0.0};
+    context.gravity = math::Vec3{0.0, 0.0, -g};
 }
 
 } // namespace environments

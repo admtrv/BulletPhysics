@@ -13,17 +13,17 @@ using namespace geography;
 
 class TestCoordinateMapping : public ::testing::Test {};
 
-// EUN (identity)
+// ENU (identity)
 
-TEST_F(TestCoordinateMapping, EUNIsIdentity)
+TEST_F(TestCoordinateMapping, ENUIsIdentity)
 {
-    auto m = mappings::EUN();
+    auto m = mappings::ENU();
     EXPECT_TRUE(m.isIdentity());
 }
 
-TEST_F(TestCoordinateMapping, EUNRoundTrip)
+TEST_F(TestCoordinateMapping, ENURoundTrip)
 {
-    auto m = mappings::EUN();
+    auto m = mappings::ENU();
     math::Vec3 v{1.0, 2.0, 3.0};
 
     auto internal = m.toInternal(v);
@@ -43,20 +43,20 @@ TEST_F(TestCoordinateMapping, GodotToInternal)
 {
     auto m = mappings::Godot();
 
-    // Godot: (1, 2, -3) -> EUN: East=1, Up=2, North=3
-    auto eun = m.toInternal({1.0, 2.0, -3.0});
+    // Godot: (1, 2, -3) -> ENU: East=1, North=3, Up=2
+    auto enu = m.toInternal({1.0, 2.0, -3.0});
 
-    EXPECT_DOUBLE_EQ(eun.x, 1.0);
-    EXPECT_DOUBLE_EQ(eun.y, 2.0);
-    EXPECT_DOUBLE_EQ(eun.z, 3.0);
+    EXPECT_DOUBLE_EQ(enu.x, 1.0);
+    EXPECT_DOUBLE_EQ(enu.y, 3.0);
+    EXPECT_DOUBLE_EQ(enu.z, 2.0);
 }
 
 TEST_F(TestCoordinateMapping, GodotToExternal)
 {
     auto m = mappings::Godot();
 
-    // EUN: East=1, Up=2, North=3 -> Godot: (1, 2, -3)
-    auto godot = m.toExternal({1.0, 2.0, 3.0});
+    // ENU: East=1, North=3, Up=2 -> Godot: (1, 2, -3)
+    auto godot = m.toExternal({1.0, 3.0, 2.0});
 
     EXPECT_DOUBLE_EQ(godot.x, 1.0);
     EXPECT_DOUBLE_EQ(godot.y, 2.0);
@@ -80,20 +80,20 @@ TEST_F(TestCoordinateMapping, UnrealToInternal)
 {
     auto m = mappings::Unreal();
 
-    // Unreal: x=North=3, y=East=1, z=Up=2 -> EUN: (1, 2, 3)
-    auto eun = m.toInternal({3.0, 1.0, 2.0});
+    // Unreal: x=North=3, y=East=1, z=Up=2 -> ENU: (1, 3, 2)
+    auto enu = m.toInternal({3.0, 1.0, 2.0});
 
-    EXPECT_DOUBLE_EQ(eun.x, 1.0);
-    EXPECT_DOUBLE_EQ(eun.y, 2.0);
-    EXPECT_DOUBLE_EQ(eun.z, 3.0);
+    EXPECT_DOUBLE_EQ(enu.x, 1.0);
+    EXPECT_DOUBLE_EQ(enu.y, 3.0);
+    EXPECT_DOUBLE_EQ(enu.z, 2.0);
 }
 
 TEST_F(TestCoordinateMapping, UnrealToExternal)
 {
     auto m = mappings::Unreal();
 
-    // EUN: (1, 2, 3) -> Unreal: x=3, y=1, z=2
-    auto unreal = m.toExternal({1.0, 2.0, 3.0});
+    // ENU: (1, 3, 2) -> Unreal: x=3, y=1, z=2
+    auto unreal = m.toExternal({1.0, 3.0, 2.0});
 
     EXPECT_DOUBLE_EQ(unreal.x, 3.0);
     EXPECT_DOUBLE_EQ(unreal.y, 1.0);
@@ -131,17 +131,17 @@ TEST_F(TestCoordinateMapping, OpenGLSameAsGodot)
 
 TEST_F(TestCoordinateMapping, CustomMappingRoundTrip)
 {
-    // East=NEG_Z, Up=POS_X, North=POS_Y
-    CoordinateMapping m(Axis::NEG_Z, Axis::POS_X, Axis::POS_Y);
+    // East=NEG_Z, North=POS_Y, Up=POS_X
+    CoordinateMapping m(Axis::NEG_Z, Axis::POS_Y, Axis::POS_X);
 
     math::Vec3 user{2.0, 3.0, -1.0};
-    auto eun = m.toInternal(user);
+    auto enu = m.toInternal(user);
 
-    EXPECT_DOUBLE_EQ(eun.x, 1.0);  // East = -user.z
-    EXPECT_DOUBLE_EQ(eun.y, 2.0);  // Up = user.x
-    EXPECT_DOUBLE_EQ(eun.z, 3.0);  // North = user.y
+    EXPECT_DOUBLE_EQ(enu.x, 1.0);  // East = -user.z
+    EXPECT_DOUBLE_EQ(enu.y, 3.0);  // North = user.y
+    EXPECT_DOUBLE_EQ(enu.z, 2.0);  // Up = user.x
 
-    auto back = m.toExternal(eun);
+    auto back = m.toExternal(enu);
     EXPECT_DOUBLE_EQ(back.x, user.x);
     EXPECT_DOUBLE_EQ(back.y, user.y);
     EXPECT_DOUBLE_EQ(back.z, user.z);
@@ -151,7 +151,7 @@ TEST_F(TestCoordinateMapping, CustomMappingRoundTrip)
 
 TEST_F(TestCoordinateMapping, ZeroVectorUnchanged)
 {
-    auto presets = {mappings::EUN(), mappings::Godot(), mappings::Unreal()};
+    auto presets = {mappings::ENU(), mappings::Godot(), mappings::Unreal()};
     math::Vec3 zero{0, 0, 0};
 
     for (auto& m : presets)

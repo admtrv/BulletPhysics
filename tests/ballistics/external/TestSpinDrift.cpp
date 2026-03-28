@@ -48,7 +48,7 @@ TEST_F(TestSpinDrift, RightTwistDeflectsRight)
         .withMuzzle(800.0, projectile::Direction::RIGHT, 12.0);
 
     ProjectileRigidBody body(specs);
-    body.setVelocity({0.0, 0.0, 800.0}); // north
+    body.setVelocity({0.0, 800.0, 0.0}); // north
 
     double fx = SpinDriftX(body, context);
 
@@ -64,7 +64,7 @@ TEST_F(TestSpinDrift, LeftTwistDeflectsLeft)
         .withMuzzle(800.0, projectile::Direction::LEFT, 12.0);
 
     ProjectileRigidBody body(specs);
-    body.setVelocity({0.0, 0.0, 800.0}); // north
+    body.setVelocity({0.0, 800.0, 0.0}); // north
 
     double fx = SpinDriftX(body, context);
 

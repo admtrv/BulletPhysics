@@ -16,13 +16,13 @@ void Coriolis::apply(IPhysicsBody& body, PhysicsContext& context)
 
     // Earth's angular velocity vector in ENU frame
     // omega = (0, omega*cos(lat), omega*sin(lat))
-    // our coordinate system: x=East, y=Up, z=North
+    // coordinate system: x=East, y=North, z=Up
     double omegaNorth = constants::WGS84_EARTH_ANGULAR_SPEED * std::cos(latitude);
     double omegaUp = constants::WGS84_EARTH_ANGULAR_SPEED * std::sin(latitude);
-    math::Vec3 omega(0.0, omegaUp, omegaNorth);
+    math::Vec3 omega(0.0, omegaNorth, omegaUp);
 
     // Coriolis acceleration: a = -2 * (omega x v)
-    math::Vec3 coriolisAccel = -2.0 * omega.crossLeft(velocity);
+    math::Vec3 coriolisAccel = -2.0 * omega.cross(velocity);
 
     // apply force: F = m * a
     if (body.getMass() > 0.0)

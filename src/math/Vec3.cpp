@@ -83,15 +83,5 @@ Vec3 Vec3::cross(const Vec3& rhs) const
     };
 }
 
-Vec3 Vec3::crossRight(const Vec3& rhs) const
-{
-    return cross(rhs);
-}
-
-Vec3 Vec3::crossLeft(const Vec3& rhs) const
-{
-    return -1.0 * cross(rhs);
-}
-
 } // namespace math
 } // namespace BulletPhysics

@@ -9,60 +9,126 @@ on:
 
 jobs:
   build:
-    runs-on: ubuntu-latest
+    strategy:
+      matrix:
+        include:
+          - os: ubuntu-latest
+            label: linux-x86_64
+            install: sudo apt-get update && sudo apt-get install -y cmake g++ libgtest-dev
+            lib: libBulletPhysics.a
+            ext: tar.gz
+
+          - os: windows-latest
+            label: win64
+            install: vcpkg install gtest:x64-windows
+            lib: Release/BulletPhysics.lib
+            ext: zip
+
+          - os: macos-latest
+            label: macos
+            install: brew install googletest
+            lib: libBulletPhysics.a
+            ext: tar.gz
+
+    runs-on: ${{ matrix.os }}
     steps:
       - uses: actions/checkout@v4
 
       - name: Install Dependencies
-        run: sudo apt-get update && sudo apt-get install -y cmake g++ libgtest-dev
+        run: ${{ matrix.install }}
 
       - name: Configure
-        run: cmake -B build -DCMAKE_BUILD_TYPE=Release
+        run: cmake -B build -DCMAKE_BUILD_TYPE=Release ${{ runner.os == 'Windows' && '-DCMAKE_TOOLCHAIN_FILE=C:/vcpkg/scripts/buildsystems/vcpkg.cmake' || '' }}
 
       - name: Build
-        run: cmake --build build --parallel
+        run: cmake --build build --config Release --parallel
 
       - uses: actions/upload-artifact@v4
         with:
-          name: build
+          name: build-${{ matrix.label }}
           path: build/
 
   test:
     needs: build
-    runs-on: ubuntu-latest
+    strategy:
+      matrix:
+        include:
+          - os: ubuntu-latest
+            label: linux-x86_64
+            test: chmod +x ./build/tests/BulletPhysicsTests && ./build/tests/BulletPhysicsTests
+
+          - os: windows-latest
+            label: win64
+            test: ./build/tests/Release/BulletPhysicsTests.exe
+
+          - os: macos-latest
+            label: macos
+            test: chmod +x ./build/tests/BulletPhysicsTests && ./build/tests/BulletPhysicsTests
+
+    runs-on: ${{ matrix.os }}
     steps:
       - uses: actions/checkout@v4
 
       - uses: actions/download-artifact@v4
         with:
-          name: build
+          name: build-${{ matrix.label }}
           path: build/
 
       - name: Test
-        run: chmod +x ./build/tests/BulletPhysicsTests && ./build/tests/BulletPhysicsTests
+        run: ${{ matrix.test }}
 
-  release:
+  package:
     needs: test
     if: startsWith(github.ref, 'refs/tags/')
-    runs-on: ubuntu-latest
+    strategy:
+      matrix:
+        include:
+          - os: ubuntu-latest
+            label: linux-x86_64
+            lib: libBulletPhysics.a
+
+          - os: windows-latest
+            label: win64
+            lib: Release/BulletPhysics.lib
+
+          - os: macos-latest
+            label: macos
+            lib: libBulletPhysics.a
+
+    runs-on: ${{ matrix.os }}
     steps:
       - uses: actions/checkout@v4
 
       - uses: actions/download-artifact@v4
         with:
-          name: build
+          name: build-${{ matrix.label }}
           path: build/
 
       - name: Package
+        shell: bash
         run: |
           VERSION=${{ github.ref_name }}
 
-          # headers + static library
           mkdir -p package/include package/lib
           cp -r src/* package/include/
           find package/include -name '*.cpp' -delete
-          cp build/libBulletPhysics.a package/lib/
-          tar -czf libbulletphysics-${VERSION}-linux-x86_64.tar.gz -C package .
+          cp build/${{ matrix.lib }} package/lib/
+          tar -czf libbulletphysics-${VERSION}-${{ matrix.label }}.tar.gz -C package .
+
+      - uses: actions/upload-artifact@v4
+        with:
+          name: package-${{ matrix.label }}
+          path: libbulletphysics-*.tar.gz
+
+  release:
+    needs: package
+    if: startsWith(github.ref, 'refs/tags/')
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/download-artifact@v4
+        with:
+          pattern: package-*
+          merge-multiple: true
 
       - name: Release
         uses: softprops/action-gh-release@v2
@@ -73,11 +139,11 @@ jobs:
           body: |
             ## BulletPhysics ${{ github.ref_name }}
 
-            BulletPhysics is a modular, engine-independent C/C++ framework for ballistic simulation. `${{ github.ref_name }}` is the latest release.
+            BulletPhysics is a modular, engine-independent C/C++ framework for ballistic simulation. `${{ github.ref_name }}` is the latest release. Enjoy!
 
             ## Downloads
 
             | File | Description |
             |------|-------------|
-            | `libbulletphysics-${{ github.ref_name }}-linux-x86_64.tar.gz` | Compiled static library and headers |
-            | `Source code (zip / tar.gz)` | Full source code  |
+            | `libbulletphysics-${{ github.ref_name }}-(platform).tar.gz` | Compiled static library and headers |
+            | `Source code (zip/tar.gz)` | Full source code |

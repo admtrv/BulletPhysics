@@ -4,6 +4,8 @@
 
 #pragma once
 
+#include <string>
+
 #include "Constants.h"
 #include "PhysicsBody.h"
 #include "../PhysicsContext.h"

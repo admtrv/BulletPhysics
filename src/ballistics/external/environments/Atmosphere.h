@@ -4,6 +4,8 @@
 
 #pragma once
 
+#include <algorithm>
+
 #include "Environment.h"
 
 namespace BulletPhysics {

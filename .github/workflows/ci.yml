@@ -1,0 +1,83 @@
+name: CI
+
+on:
+  push:
+    branches: [main]
+    tags: ['*']
+  pull_request:
+    branches: [main]
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Install Dependencies
+        run: sudo apt-get update && sudo apt-get install -y cmake g++ libgtest-dev
+
+      - name: Configure
+        run: cmake -B build -DCMAKE_BUILD_TYPE=Release
+
+      - name: Build
+        run: cmake --build build --parallel
+
+      - uses: actions/upload-artifact@v4
+        with:
+          name: build
+          path: build/
+
+  test:
+    needs: build
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/download-artifact@v4
+        with:
+          name: build
+          path: build/
+
+      - name: Test
+        run: chmod +x ./build/tests/BulletPhysicsTests && ./build/tests/BulletPhysicsTests
+
+  release:
+    needs: test
+    if: startsWith(github.ref, 'refs/tags/')
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/download-artifact@v4
+        with:
+          name: build
+          path: build/
+
+      - name: Package
+        run: |
+          VERSION=${{ github.ref_name }}
+
+          # headers + static library
+          mkdir -p package/include package/lib
+          cp -r src/* package/include/
+          find package/include -name '*.cpp' -delete
+          cp build/libBulletPhysics.a package/lib/
+          tar -czf libbulletphysics-${VERSION}-linux-x86_64.tar.gz -C package .
+
+      - name: Release
+        uses: softprops/action-gh-release@v2
+        with:
+          name: ${{ github.ref_name }}
+          files: |
+            libbulletphysics-*.tar.gz
+          body: |
+            ## BulletPhysics ${{ github.ref_name }}
+
+            BulletPhysics is a modular, engine-independent C/C++ framework for ballistic simulation. `${{ github.ref_name }}` is the latest release.
+
+            ## Downloads
+
+            | File | Description |
+            |------|-------------|
+            | `libbulletphysics-${{ github.ref_name }}-linux-x86_64.tar.gz` | Compiled static library and headers |
+            | `Source code (zip / tar.gz)` | Full source code  |

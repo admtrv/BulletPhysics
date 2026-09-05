@@ -50,9 +50,12 @@ bool SphereCollider::testCollisionWithSphere(const SphereCollider& sphere, Colli
         return false;
     }
 
-    // concentric spheres have no meaningful direction, push along a fixed axis
+    // concentric spheres have no direction, pick one
     outInfo.normal = (distance > 1e-9) ? diff * (1.0 / distance) : math::Vec3{0.0, 1.0, 0.0};
     outInfo.penetration = contactDistance - distance;
+
+    outInfo.pointCount = 0;
+    outInfo.addPoint(m_position + outInfo.normal * (m_radius - outInfo.penetration * 0.5));
 
     return true;
 }
@@ -64,7 +67,6 @@ bool SphereCollider::testCollisionWithBox(const BoxCollider& box, CollisionInfo&
 
     const math::Vec3 toSphere = m_position - box.getPosition();
 
-    // closest point on the box, found by clamping the centre in the box's own frame
     math::Vec3 closest = box.getPosition();
     double local[3];
 
@@ -88,10 +90,12 @@ bool SphereCollider::testCollisionWithBox(const BoxCollider& box, CollisionInfo&
     {
         outInfo.normal = diff * (1.0 / distance);
         outInfo.penetration = m_radius - distance;
+        outInfo.pointCount = 0;
+        outInfo.addPoint(closest);
         return true;
     }
 
-    // centre sits inside the box, leave along the face it is closest to
+    // centre inside box, escape through nearest face
     int shallowest = 0;
     double smallestGap = (half.x - std::abs(local[0]));
 
@@ -111,6 +115,8 @@ bool SphereCollider::testCollisionWithBox(const BoxCollider& box, CollisionInfo&
 
     outInfo.normal = axes[shallowest] * sign;
     outInfo.penetration = m_radius + smallestGap;
+    outInfo.pointCount = 0;
+    outInfo.addPoint(closest);
 
     return true;
 }
@@ -125,9 +131,12 @@ bool SphereCollider::testCollisionWithGround(const GroundCollider& ground, Colli
         return false;
     }
 
-    // the sphere is the first collider, so the normal points down into the ground
+    // sphere is first collider, normal points down into ground
     outInfo.normal = math::Vec3{0.0, -1.0, 0.0};
     outInfo.penetration = groundY - lowest;
+
+    outInfo.pointCount = 0;
+    outInfo.addPoint({m_position.x, groundY, m_position.z});
 
     return true;
 }

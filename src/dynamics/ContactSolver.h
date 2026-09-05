@@ -12,7 +12,8 @@ namespace dynamics {
 // resolves contacts so bodies stop moving into each other
 class ContactSolver {
 public:
-    void resolve(const collision::Manifold& manifold) const;
+    void solveVelocity(const collision::Manifold& manifold) const;
+    void correctPosition(const collision::Manifold& manifold) const;
 };
 
 } // namespace dynamics

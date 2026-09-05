@@ -9,7 +9,27 @@
 namespace BulletPhysics {
 namespace dynamics {
 
+// motion bled off per second, keeps bodies from drifting forever
+static constexpr double LINEAR_DAMPING = 0.05;
+static constexpr double ANGULAR_DAMPING = 0.5;
+
+// below this a body counts as standing still
+static constexpr double SLEEP_LINEAR_SPEED = 0.05;
+static constexpr double SLEEP_ANGULAR_SPEED = 0.05;
+
 // simulation
+
+int PhysicsWorld::update(double frameTime)
+{
+    const int steps = m_timer.consume(frameTime);
+
+    for (int i = 0; i < steps; i++)
+    {
+        step(m_timer.getTimeStep());
+    }
+
+    return steps;
+}
 
 void PhysicsWorld::step(double dt)
 {
@@ -26,13 +46,25 @@ void PhysicsWorld::integrate(double dt)
             continue;
         }
 
-        // a = g + F / m
         const math::Vec3 acceleration = m_gravity + body->getAccumulatedForces() * body->getInverseMass();
 
-        // semi-implicit euler, velocity first then position with the new velocity
-        // stays stable when solver changes velocities between steps
+        // semi-implicit euler
         body->setVelocity(body->getVelocity() + acceleration * dt);
         body->setPosition(body->getPosition() + body->getVelocity() * dt);
+
+        const math::Vec3 angularAcceleration = body->getInverseInertia() * body->getAccumulatedTorque();
+
+        body->setAngularVelocity(body->getAngularVelocity() + angularAcceleration * dt);
+
+        // q' = q + 0.5 * w * q * dt, w as quaternion with zero scalar part
+        const math::Vec3& angularVelocity = body->getAngularVelocity();
+        const math::Quat spin{0.0, angularVelocity.x, angularVelocity.y, angularVelocity.z};
+
+        body->setOrientation(body->getOrientation() + spin * body->getOrientation() * (0.5 * dt));
+
+        // bleed off motion, nothing comes to rest otherwise
+        body->setVelocity(body->getVelocity() * std::max(0.0, 1.0 - LINEAR_DAMPING * dt));
+        body->setAngularVelocity(body->getAngularVelocity() * std::max(0.0, 1.0 - ANGULAR_DAMPING * dt));
 
         body->clearForces();
     }
@@ -40,6 +72,7 @@ void PhysicsWorld::integrate(double dt)
     for (auto* collider : m_colliders)
     {
         collider->setPosition(collider->getBody()->getPosition());
+        collider->setOrientation(collider->getBody()->getOrientation());
     }
 }
 
@@ -47,13 +80,47 @@ void PhysicsWorld::collide()
 {
     m_collision.detect(m_manifolds);
 
+    // one pass leaves stacks sagging, contact sees only what came before
+    for (int iteration = 0; iteration < m_solverIterations; iteration++)
+    {
+        for (const auto& manifold : m_manifolds)
+        {
+            m_solver.solveVelocity(manifold);
+        }
+    }
+
     for (const auto& manifold : m_manifolds)
     {
-        m_solver.resolve(manifold);
+        m_solver.correctPosition(manifold);
+    }
 
-        // solver moved the bodies, keep colliders in sync for the next pair
-        manifold.colliderA->setPosition(manifold.colliderA->getBody()->getPosition());
-        manifold.colliderB->setPosition(manifold.colliderB->getBody()->getPosition());
+    // motion this slow is solver noise, body would creep forever
+    for (const auto& manifold : m_manifolds)
+    {
+        for (auto* collider : {manifold.colliderA, manifold.colliderB})
+        {
+            RigidBody* body = collider->getBody();
+            if (!body || !body->isDynamic())
+            {
+                continue;
+            }
+
+            if (body->getVelocity().length() < SLEEP_LINEAR_SPEED)
+            {
+                body->setVelocity({});
+            }
+
+            if (body->getAngularVelocity().length() < SLEEP_ANGULAR_SPEED)
+            {
+                body->setAngularVelocity({});
+            }
+        }
+    }
+
+    for (auto* collider : m_colliders)
+    {
+        collider->setPosition(collider->getBody()->getPosition());
+        collider->setOrientation(collider->getBody()->getOrientation());
     }
 }
 
@@ -72,6 +139,7 @@ void PhysicsWorld::addBody(RigidBody* body, collision::collider::Collider* colli
     {
         collider->setBody(body);
         collider->setPosition(body->getPosition());
+        collider->setOrientation(body->getOrientation());
 
         m_colliders.push_back(collider);
         m_collision.addCollider(collider);
@@ -86,7 +154,6 @@ void PhysicsWorld::removeBody(RigidBody* body)
         m_bodies.erase(it);
     }
 
-    // colliders go with their body
     for (auto colliderIt = m_colliders.begin(); colliderIt != m_colliders.end();)
     {
         if ((*colliderIt)->getBody() == body)

@@ -23,6 +23,7 @@ public:
 
     const math::Vec3& getPosition() const override { return m_position; }
     void setPosition(const math::Vec3& pos) override { m_position = pos; }
+    void setOrientation(const math::Quat& orientation) override;
 
     const math::Vec3& getSize() const { return m_size; }
     void setSize(const math::Vec3& size) { m_size = size; }

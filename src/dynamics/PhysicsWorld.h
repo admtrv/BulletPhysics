@@ -6,6 +6,7 @@
 
 #include "collision/Collision.h"
 #include "dynamics/ContactSolver.h"
+#include "dynamics/PhysicsTimer.h"
 #include "dynamics/RigidBody.h"
 
 #include <vector>
@@ -21,11 +22,15 @@ public:
     PhysicsWorld() = default;
 
     // simulation
-    void step(double dt);
+    int update(double frameTime);   // runs as many fixed steps as frame time owes
+    void step(double dt);           // one step, for own clock
+
+    // timing
+    PhysicsTimer& getTimer() { return m_timer; }
+    const PhysicsTimer& getTimer() const { return m_timer; }
 
     // bodies, not owned
-    // collider is optional, body without one passes through everything
-    void addBody(RigidBody* body, collision::collider::Collider* collider = nullptr);
+    void addBody(RigidBody* body, collision::collider::Collider* collider = nullptr);   // no collider means no contacts
     void removeBody(RigidBody* body);
 
     void clear();
@@ -33,6 +38,10 @@ public:
     // gravitation
     const math::Vec3& getGravity() const { return m_gravity; }
     void setGravity(const math::Vec3& gravity) { m_gravity = gravity; }
+
+    // solver passes per step, more of them hold stacks better
+    int getSolverIterations() const { return m_solverIterations; }
+    void setSolverIterations(int iterations) { m_solverIterations = (iterations > 0 ? iterations : 1); }
 
     // getters
     const std::vector<RigidBody*>& getBodies() const { return m_bodies; }
@@ -52,6 +61,9 @@ private:
 
     // parameters
     math::Vec3 m_gravity = DEFAULT_GRAVITY;
+    int m_solverIterations = 8;
+
+    PhysicsTimer m_timer;
 
     // machinery
     collision::Collision m_collision;

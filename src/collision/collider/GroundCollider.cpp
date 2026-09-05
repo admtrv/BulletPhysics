@@ -32,7 +32,6 @@ bool GroundCollider::testCollision(const Collider& other, CollisionInfo& outInfo
             return testCollisionWithSphere(static_cast<const SphereCollider&>(other), outInfo);
         }
         case CollisionShape::Ground: {
-            // two ground planes don't collide
             return false;
         }
         default:
@@ -42,7 +41,7 @@ bool GroundCollider::testCollision(const Collider& other, CollisionInfo& outInfo
 
 bool GroundCollider::testCollisionWithBox(const BoxCollider& box, CollisionInfo& outInfo) const
 {
-    // reuse the box test, then flip the normal so it points from the ground upwards
+    // box does the test, flip normal to point up from ground
     if (!box.testCollisionWithGround(*this, outInfo))
     {
         return false;
@@ -54,7 +53,7 @@ bool GroundCollider::testCollisionWithBox(const BoxCollider& box, CollisionInfo&
 
 bool GroundCollider::testCollisionWithSphere(const SphereCollider& sphere, CollisionInfo& outInfo) const
 {
-    // reuse the sphere test, then flip the normal so it points from the ground upwards
+    // sphere does the test, flip normal to point up from ground
     if (!sphere.testCollisionWithGround(*this, outInfo))
     {
         return false;

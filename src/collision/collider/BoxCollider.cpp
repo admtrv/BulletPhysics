@@ -10,6 +10,9 @@ namespace BulletPhysics {
 namespace collision {
 namespace collider {
 
+// corners slightly above surface still count, otherwise the box rocks
+static constexpr double CONTACT_MARGIN = 0.01;
+
 BoxCollider::BoxCollider(const math::Vec3& size) : m_size(size) {}
 
 void BoxCollider::setAxes(const math::Vec3& axisX, const math::Vec3& axisY, const math::Vec3& axisZ)
@@ -19,6 +22,13 @@ void BoxCollider::setAxes(const math::Vec3& axisX, const math::Vec3& axisY, cons
     m_axes[2] = axisZ;
 }
 
+void BoxCollider::setOrientation(const math::Quat& orientation)
+{
+    m_axes[0] = orientation.rotate({1.0, 0.0, 0.0});
+    m_axes[1] = orientation.rotate({0.0, 1.0, 0.0});
+    m_axes[2] = orientation.rotate({0.0, 0.0, 1.0});
+}
+
 bool BoxCollider::testCollision(const Collider& other, CollisionInfo& outInfo) const
 {
     switch (other.getShape()) {
@@ -26,7 +36,7 @@ bool BoxCollider::testCollision(const Collider& other, CollisionInfo& outInfo) c
             return testCollisionWithBox(static_cast<const BoxCollider&>(other), outInfo);
         }
         case CollisionShape::Sphere: {
-            // reuse the sphere's own test, then flip the normal to point away from us
+            // sphere does the test, flip normal to point away from us
             if (!static_cast<const SphereCollider&>(other).testCollisionWithBox(*this, outInfo))
             {
                 return false;
@@ -55,7 +65,6 @@ bool BoxCollider::testCollisionWithBox(const BoxCollider& other, CollisionInfo& 
         return false;
     }
 
-    // find axis of minimum penetration
     double minPenetration = std::abs(diff.x) - (half1.x + half2.x);
     outInfo.normal = diff.x > 0.0 ? math::Vec3{1.0, 0.0, 0.0} : math::Vec3{-1.0, 0.0, 0.0};
     outInfo.penetration = -minPenetration;
@@ -74,6 +83,13 @@ bool BoxCollider::testCollisionWithBox(const BoxCollider& other, CollisionInfo& 
         outInfo.normal = diff.z > 0.0 ? math::Vec3{0.0, 0.0, 1.0} : math::Vec3{0.0, 0.0, -1.0};
     }
 
+    outInfo.pointCount = 0;
+    outInfo.addPoint({
+        std::clamp(other.m_position.x, m_position.x - half1.x, m_position.x + half1.x),
+        std::clamp(other.m_position.y, m_position.y - half1.y, m_position.y + half1.y),
+        std::clamp(other.m_position.z, m_position.z - half1.z, m_position.z + half1.z)
+    });
+
     return true;
 }
 
@@ -82,31 +98,36 @@ bool BoxCollider::testCollisionWithGround(const GroundCollider& ground, Collisio
     double groundY = ground.getGroundY();
     math::Vec3 half = m_size * 0.5;
 
-    // find lowest vertex
     double lowestY = m_position.y;
 
-    // project half-extents onto each axis and find y-components
+    // every corner under the plane, flat face gives four and stops rocking
+    outInfo.pointCount = 0;
+
     for (int i = 0; i < 8; i++)
     {
-        // generate all 8 corner combinations
         double sx = (i & 1) ? half.x : -half.x;
         double sy = (i & 2) ? half.y : -half.y;
         double sz = (i & 4) ? half.z : -half.z;
 
-        // vertex = center + sx*axisX + sy*axisY + sz*axisZ
-        double vertexY = m_position.y + sx * m_axes[0].y + sy * m_axes[1].y + sz * m_axes[2].y;
+        const math::Vec3 vertex = m_position + m_axes[0] * sx + m_axes[1] * sy + m_axes[2] * sz;
 
-        if (vertexY < lowestY)
+        if (vertex.y < lowestY)
         {
-            lowestY = vertexY;
+            lowestY = vertex.y;
+        }
+
+        if (vertex.y < groundY + CONTACT_MARGIN)
+        {
+            outInfo.addPoint({vertex.x, groundY, vertex.z});
         }
     }
 
-    if (lowestY < groundY)
+    if (outInfo.pointCount > 0)
     {
-        // the box is the first collider, so the normal points down into the ground
+        // box is first collider, normal points down into ground
         outInfo.normal = math::Vec3{0.0, -1.0, 0.0};
         outInfo.penetration = groundY - lowestY;
+
         return true;
     }
 

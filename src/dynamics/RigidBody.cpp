@@ -11,18 +11,22 @@ void RigidBody::setMotionType(MotionType type)
 {
     m_motionType = type;
 
-    if (type == MotionType::Static)
-    {
-        m_inverseMass = 0.0;
-        m_inverseInertiaWorld = math::Mat3::zero();
-
-        m_velocity = math::Vec3{};
-        m_angularVelocity = math::Vec3{};
-    }
-    else
+    if (type == MotionType::Dynamic)
     {
         m_inverseMass = 1.0 / m_mass;
         updateInverseInertiaWorld();
+
+        return;
+    }
+
+    // both are unmovable by contacts, kinematic keeps its velocity
+    m_inverseMass = 0.0;
+    m_inverseInertiaWorld = math::Mat3::zero();
+
+    if (type == MotionType::Static)
+    {
+        m_velocity = math::Vec3{};
+        m_angularVelocity = math::Vec3{};
     }
 }
 
@@ -55,6 +59,12 @@ void RigidBody::addForceAtPoint(const math::Vec3& force, const math::Vec3& point
 
     // t = r x F, force through centre of mass gives no torque
     m_torque += (point - m_position).cross(force);
+}
+
+void RigidBody::applyDamping(double dt)
+{
+    m_velocity *= std::max(1.0 - m_linearDamping * dt, 0.0);
+    m_angularVelocity *= std::max(1.0 - m_angularDamping * dt, 0.0);
 }
 
 void RigidBody::wake()

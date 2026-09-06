@@ -42,20 +42,23 @@ void PhysicsWorld::integrate(double dt)
 {
     for (RigidBody* body : m_bodies)
     {
-        if (!body->isDynamic() || body->isSleeping())
+        if (!body->isMovable() || body->isSleeping())
         {
             continue;
         }
 
-        const math::Vec3 acceleration = m_gravity + body->getAccumulatedForces() * body->getInverseMass();
+        // kinematic bodies carry the velocity they were given, nothing acts on them
+        if (body->isDynamic())
+        {
+            const math::Vec3 acceleration = m_gravity + body->getAccumulatedForces() * body->getInverseMass();
+            body->setVelocity(body->getVelocity() + acceleration * dt);
+
+            const math::Vec3 angularAcceleration = body->getInverseInertia() * body->getAccumulatedTorque();
+            body->setAngularVelocity(body->getAngularVelocity() + angularAcceleration * dt);
+        }
 
         // semi-implicit euler
-        body->setVelocity(body->getVelocity() + acceleration * dt);
         body->setPosition(body->getPosition() + body->getVelocity() * dt);
-
-        const math::Vec3 angularAcceleration = body->getInverseInertia() * body->getAccumulatedTorque();
-
-        body->setAngularVelocity(body->getAngularVelocity() + angularAcceleration * dt);
 
         // q' = q + 0.5 * w * q * dt, w as quaternion with zero scalar part
         const math::Vec3& angularVelocity = body->getAngularVelocity();
@@ -63,8 +66,10 @@ void PhysicsWorld::integrate(double dt)
 
         body->setOrientation(body->getOrientation() + spin * body->getOrientation() * (0.5 * dt));
 
-        body->setVelocity(body->getVelocity() * body->dampingOver(body->getLinearDamping(), dt));
-        body->setAngularVelocity(body->getAngularVelocity() * body->dampingOver(body->getAngularDamping(), dt));
+        if (body->isDynamic())
+        {
+            body->applyDamping(dt);
+        }
 
         body->clearForces();
     }

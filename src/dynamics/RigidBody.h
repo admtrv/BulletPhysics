@@ -13,19 +13,20 @@
 namespace BulletPhysics {
 namespace dynamics {
 
+// defaults
 inline constexpr double DEFAULT_MASS = 1.0;
-
 inline constexpr double DEFAULT_LINEAR_DAMPING = 0.0;    // nothing slows a body in flight
-inline constexpr double DEFAULT_ANGULAR_DAMPING = 0.8;   // spin fades, else a ball rolls forever
+inline constexpr double DEFAULT_ANGULAR_DAMPING = 0.8;   // else a ball rolls forever
 
-// damping only ever approaches zero, a body has to be put to sleep to truly stop
+// sleep
 inline constexpr double SLEEP_LINEAR_SPEED = 0.08;
 inline constexpr double SLEEP_ANGULAR_SPEED = 0.2;
-inline constexpr double SLEEP_DELAY = 0.5;               // seconds of near stillness before it counts
+inline constexpr double SLEEP_DELAY = 0.5;               // seconds of stillness before parking
 
 enum class MotionType {
-    Dynamic,    // moved by forces and contacts
-    Static      // never moves, holds everything else up
+    Dynamic,      // moved by forces and contacts
+    Kinematic,    // moved by hand, pushes others and ignores them back
+    Static        // never moves, holds everything else up
 };
 
 class RigidBody {
@@ -36,7 +37,10 @@ public:
     MotionType getMotionType() const { return m_motionType; }
     void setMotionType(MotionType type);
 
+    // utils
     bool isDynamic() const { return m_motionType == MotionType::Dynamic; }
+    bool isKinematic() const { return m_motionType == MotionType::Kinematic; }
+    bool isMovable() const { return m_motionType != MotionType::Static; }
 
     // mass
     double getMass() const { return m_mass; }
@@ -55,35 +59,31 @@ public:
     const math::Quat& getOrientation() const { return m_orientation; }
     void setOrientation(const math::Quat& orientation);
 
-    // linear velocity
+    // velocity
+
+    // linear
     const math::Vec3& getVelocity() const { return m_velocity; }
+    math::Vec3 getVelocityAt(const math::Vec3& point) const;
     void setVelocity(const math::Vec3& vel) { m_velocity = vel; }
 
-    // angular velocity
+    // angular
     const math::Vec3& getAngularVelocity() const { return m_angularVelocity; }
     void setAngularVelocity(const math::Vec3& angularVel) { m_angularVelocity = angularVel; }
 
-    // damping, share of velocity bled off per second
-    // a rolling ball has no sliding left for friction to catch, this is what
-    // brings it to a stop
+    // damping
+
+    // linear
     double getLinearDamping() const { return m_linearDamping; }
     void setLinearDamping(double damping) { m_linearDamping = std::max(damping, 0.0); }
 
+    // angular
     double getAngularDamping() const { return m_angularDamping; }
     void setAngularDamping(double damping) { m_angularDamping = std::max(damping, 0.0); }
 
-    // scale to apply to velocity for a step of dt
-    double dampingOver(double damping, double dt) const { return std::max(1.0 - damping * dt, 0.0); }
-
     // sleep
-    // a body barely moving for long enough is parked, damping alone only ever
-    // approaches zero and leaves everything drifting
     bool isSleeping() const { return m_sleeping; }
-    void wake();
-
     void updateSleep(double dt);
-
-    math::Vec3 getVelocityAt(const math::Vec3& point) const;
+    void wake();
 
     // forces
     const math::Vec3& getAccumulatedForces() const { return m_forces; }
@@ -96,7 +96,6 @@ public:
     void clearForces();
 
 private:
-    // world inertia changes with orientation, cached
     void updateInverseInertiaWorld();
 
     MotionType m_motionType = MotionType::Dynamic;

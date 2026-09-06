@@ -85,6 +85,10 @@ public:
     const PhysicsMaterial& getMaterial() const { return m_material; }
     void setMaterial(const PhysicsMaterial& material) { m_material = material; }
 
+    // trigger
+    bool isTrigger() const { return m_trigger; }
+    void setTrigger(bool trigger) { m_trigger = trigger; }
+
     // layers
     LayerMask getLayer() const { return m_layer; }
     void setLayer(LayerMask layer) { m_layer = layer; }
@@ -103,6 +107,8 @@ public:
 private:
     dynamics::RigidBody* m_body = nullptr;
     PhysicsMaterial m_material;
+
+    bool m_trigger = false;
 
     LayerMask m_layer = LAYER_DEFAULT;
     LayerMask m_mask = LAYER_ALL;

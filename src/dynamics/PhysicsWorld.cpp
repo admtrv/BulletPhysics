@@ -104,6 +104,50 @@ void PhysicsWorld::collide()
     }
 
     syncColliders();
+
+    reportContacts(previous);
+}
+
+// a pair is the same contact as long as both colliders match
+static bool samePair(const collision::Manifold& a, const collision::Manifold& b)
+{
+    return a.colliderA == b.colliderA && a.colliderB == b.colliderB;
+}
+
+void PhysicsWorld::reportContacts(const std::vector<collision::Manifold>& previous) const
+{
+    if (!m_listener)
+    {
+        return;
+    }
+
+    for (const auto& manifold : m_manifolds)
+    {
+        const bool known = std::any_of(previous.begin(), previous.end(), [&manifold](const auto& old) {
+            return samePair(old, manifold);
+        });
+
+        if (known)
+        {
+            m_listener->onContactStay(manifold);
+        }
+        else
+        {
+            m_listener->onContactBegin(manifold);
+        }
+    }
+
+    for (const auto& old : previous)
+    {
+        const bool alive = std::any_of(m_manifolds.begin(), m_manifolds.end(), [&old](const auto& manifold) {
+            return samePair(old, manifold);
+        });
+
+        if (!alive)
+        {
+            m_listener->onContactEnd(old.colliderA, old.colliderB);
+        }
+    }
 }
 
 void PhysicsWorld::syncColliders()

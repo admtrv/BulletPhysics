@@ -64,6 +64,12 @@ static ContactFrame frameOf(const collision::Manifold& manifold)
 {
     ContactFrame frame;
 
+    // a trigger only reports the touch, nothing is pushed apart
+    if (manifold.colliderA->isTrigger() || manifold.colliderB->isTrigger())
+    {
+        return frame;
+    }
+
     frame.a = manifold.colliderA->getBody();
     frame.b = manifold.colliderB->getBody();
     frame.normal = manifold.info.normal;

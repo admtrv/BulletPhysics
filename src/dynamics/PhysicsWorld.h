@@ -5,6 +5,7 @@
 #pragma once
 
 #include "collision/Collision.h"
+#include "dynamics/ContactListener.h"
 #include "dynamics/ContactSolver.h"
 #include "dynamics/PhysicsTimer.h"
 #include "dynamics/RigidBody.h"
@@ -35,6 +36,9 @@ public:
 
     void clear();
 
+    // contacts, listener is not owned
+    void setContactListener(IContactListener* listener) { m_listener = listener; }
+
     // gravitation
     const math::Vec3& getGravity() const { return m_gravity; }
     void setGravity(const math::Vec3& gravity) { m_gravity = gravity; }
@@ -56,6 +60,7 @@ private:
     void collide();
 
     void carryImpulses(const std::vector<collision::Manifold>& previous);
+    void reportContacts(const std::vector<collision::Manifold>& previous) const;
     void syncColliders();
 
     // contents
@@ -71,6 +76,7 @@ private:
     // machinery
     collision::Collision m_collision;
     ContactSolver m_solver;
+    IContactListener* m_listener = nullptr;
     std::vector<collision::Manifold> m_manifolds;
 };
 

@@ -108,6 +108,8 @@ void PhysicsWorld::collide()
     reportContacts(previous);
 }
 
+// helpers
+
 // a pair is the same contact as long as both colliders match
 static bool samePair(const collision::Manifold& a, const collision::Manifold& b)
 {
@@ -192,6 +194,51 @@ void PhysicsWorld::carryImpulses(const std::vector<collision::Manifold>& previou
             }
         }
     }
+}
+
+// queries
+
+bool PhysicsWorld::raycast(const collision::Ray& ray, collision::RayHit& outHit,
+                           collision::collider::LayerMask mask) const
+{
+    outHit = {};
+
+    double nearest = ray.maxDistance;
+
+    for (auto* collider : m_colliders)
+    {
+        if ((mask & collider->getLayer()) == 0)
+        {
+            continue;
+        }
+
+        double distance = 0.0;
+        if (!collider->raycast(ray, distance) || distance >= nearest)
+        {
+            continue;
+        }
+
+        nearest = distance;
+
+        outHit.collider = collider;
+        outHit.distance = distance;
+        outHit.point = ray.pointAt(distance);
+    }
+
+    if (!outHit.collider)
+    {
+        return false;
+    }
+
+    outHit.normal = outHit.collider->normalAt(outHit.point);
+
+    // always face the ray, a ray starting inside would get the far side otherwise
+    if (outHit.normal.dot(ray.direction) > 0.0)
+    {
+        outHit.normal = outHit.normal * -1.0;
+    }
+
+    return true;
 }
 
 // contents

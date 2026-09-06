@@ -26,6 +26,8 @@ public:
     void setRadius(double radius);
 
     bool testCollision(const Collider& other, CollisionInfo& outInfo) const override;
+    bool raycast(const Ray& ray, double& outDistance) const override;
+    math::Vec3 normalAt(const math::Vec3& point) const override;
     bool testCollisionWithSphere(const SphereCollider& sphere, CollisionInfo& outInfo) const;
     bool testCollisionWithBox(const BoxCollider& box, CollisionInfo& outInfo) const;
     bool testCollisionWithGround(const GroundCollider& ground, CollisionInfo& outInfo) const;

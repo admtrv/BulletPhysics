@@ -38,6 +38,42 @@ bool SphereCollider::testCollision(const Collider& other, CollisionInfo& outInfo
     }
 }
 
+bool SphereCollider::raycast(const Ray& ray, double& outDistance) const
+{
+    const math::Vec3 toCentre = m_position - ray.origin;
+
+    const double along = toCentre.dot(ray.direction);
+    const double offCentre = toCentre.dot(toCentre) - along * along;
+
+    const double radius2 = m_radius * m_radius;
+    if (offCentre > radius2)
+    {
+        return false;
+    }
+
+    const double half = std::sqrt(radius2 - offCentre);
+
+    // near side first, far side when the ray starts inside
+    double distance = along - half;
+    if (distance < 0.0)
+    {
+        distance = along + half;
+    }
+
+    if (distance < 0.0 || distance > ray.maxDistance)
+    {
+        return false;
+    }
+
+    outDistance = distance;
+    return true;
+}
+
+math::Vec3 SphereCollider::normalAt(const math::Vec3& point) const
+{
+    return (point - m_position).normalized();
+}
+
 bool SphereCollider::testCollisionWithSphere(const SphereCollider& sphere, CollisionInfo& outInfo) const
 {
     const math::Vec3 diff = sphere.m_position - m_position;

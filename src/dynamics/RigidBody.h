@@ -72,6 +72,8 @@ public:
 
     // damping
 
+    void applyDamping(double dt);
+
     // linear
     double getLinearDamping() const { return m_linearDamping; }
     void setLinearDamping(double damping) { m_linearDamping = std::max(damping, 0.0); }
@@ -79,8 +81,6 @@ public:
     // angular
     double getAngularDamping() const { return m_angularDamping; }
     void setAngularDamping(double damping) { m_angularDamping = std::max(damping, 0.0); }
-
-    void applyDamping(double dt);
 
     // sleep
     bool isSleeping() const { return m_sleeping; }

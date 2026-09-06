@@ -6,6 +6,8 @@
 #include "BoxCollider.h"
 #include "SphereCollider.h"
 
+#include <cmath>
+
 namespace BulletPhysics {
 namespace collision {
 namespace collider {
@@ -37,6 +39,25 @@ bool GroundCollider::testCollision(const Collider& other, CollisionInfo& outInfo
         default:
             return false;
     }
+}
+
+bool GroundCollider::raycast(const Ray& ray, double& outDistance) const
+{
+    // parallel rays never reach the plane
+    if (std::abs(ray.direction.y) < 1e-9)
+    {
+        return false;
+    }
+
+    const double distance = (m_position.y - ray.origin.y) / ray.direction.y;
+
+    if (distance < 0.0 || distance > ray.maxDistance)
+    {
+        return false;
+    }
+
+    outDistance = distance;
+    return true;
 }
 
 bool GroundCollider::testCollisionWithBox(const BoxCollider& box, CollisionInfo& outInfo) const

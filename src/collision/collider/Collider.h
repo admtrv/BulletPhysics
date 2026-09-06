@@ -5,6 +5,7 @@
 #pragma once
 
 #include "collision/PhysicsMaterial.h"
+#include "collision/Ray.h"
 #include "math/Quat.h"
 #include "math/Vec3.h"
 
@@ -80,6 +81,12 @@ public:
 
     // outInfo normal points from this collider to other
     virtual bool testCollision(const Collider& other, CollisionInfo& outInfo) const = 0;
+
+    // nearest hit along the ray, distance only, caller fills the rest
+    virtual bool raycast(const Ray& ray, double& outDistance) const = 0;
+
+    // outward normal at a point known to sit on the surface
+    virtual math::Vec3 normalAt(const math::Vec3& point) const = 0;
 
     // surface
     const PhysicsMaterial& getMaterial() const { return m_material; }

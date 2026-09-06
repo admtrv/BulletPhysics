@@ -26,26 +26,26 @@ public:
     int update(double frameTime);   // runs as many fixed steps as frame time owes
     void step(double dt);           // one step, for own clock
 
-    // timing
-    PhysicsTimer& getTimer() { return m_timer; }
-    const PhysicsTimer& getTimer() const { return m_timer; }
-
-    // bodies, not owned
+    // contents, not owned
     void addBody(RigidBody* body, collision::collider::Collider* collider = nullptr);   // no collider means no contacts
     void removeBody(RigidBody* body);
 
     void clear();
 
-    // contacts, listener is not owned
-    void setContactListener(IContactListener* listener) { m_listener = listener; }
+    // queries
+    bool raycast(const collision::Ray& ray, collision::RayHit& outHit, collision::collider::LayerMask mask = collision::collider::LAYER_ALL) const;
 
-    // gravitation
+    // parameters
     const math::Vec3& getGravity() const { return m_gravity; }
     void setGravity(const math::Vec3& gravity) { m_gravity = gravity; }
 
-    // solver passes per step, more of them hold stacks better
-    int getSolverIterations() const { return m_solverIterations; }
+    int getSolverIterations() const { return m_solverIterations; }   // more of them hold stacks better
     void setSolverIterations(int iterations) { m_solverIterations = (iterations > 0 ? iterations : 1); }
+
+    PhysicsTimer& getTimer() { return m_timer; }
+    const PhysicsTimer& getTimer() const { return m_timer; }
+
+    void setContactListener(IContactListener* listener) { m_listener = listener; }   // not owned
 
     // getters
     const std::vector<RigidBody*>& getBodies() const { return m_bodies; }
@@ -59,6 +59,7 @@ private:
     void integrate(double dt);
     void collide();
 
+    // helpers
     void carryImpulses(const std::vector<collision::Manifold>& previous);
     void reportContacts(const std::vector<collision::Manifold>& previous) const;
     void syncColliders();
@@ -72,11 +73,11 @@ private:
     int m_solverIterations = 20;
 
     PhysicsTimer m_timer;
+    IContactListener* m_listener = nullptr;
 
     // machinery
     collision::Collision m_collision;
     ContactSolver m_solver;
-    IContactListener* m_listener = nullptr;
     std::vector<collision::Manifold> m_manifolds;
 };
 

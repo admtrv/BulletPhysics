@@ -55,6 +55,86 @@ bool BoxCollider::testCollision(const Collider& other, CollisionInfo& outInfo) c
     }
 }
 
+bool BoxCollider::raycast(const Ray& ray, double& outDistance) const
+{
+    const math::Vec3 half = m_size * 0.5;
+    const math::Vec3 toCentre = m_position - ray.origin;
+
+    // slab method run in the box own axes, so a turned box needs no special case
+    double entry = -1e30;
+    double exit = 1e30;
+
+    for (int i = 0; i < 3; i++)
+    {
+        const double extent = (i == 0) ? half.x : (i == 1) ? half.y : half.z;
+
+        const double along = ray.direction.dot(m_axes[i]);
+        const double centre = toCentre.dot(m_axes[i]);
+
+        if (std::abs(along) < 1e-9)
+        {
+            // ray runs parallel to this pair of faces, it must start between them
+            if (std::abs(centre) > extent)
+            {
+                return false;
+            }
+
+            continue;
+        }
+
+        double near = (centre - extent) / along;
+        double far = (centre + extent) / along;
+
+        if (near > far)
+        {
+            std::swap(near, far);
+        }
+
+        entry = std::max(entry, near);
+        exit = std::min(exit, far);
+
+        if (entry > exit)
+        {
+            return false;
+        }
+    }
+
+    // a ray starting inside leaves through the far face
+    const double distance = (entry >= 0.0) ? entry : exit;
+
+    if (distance < 0.0 || distance > ray.maxDistance)
+    {
+        return false;
+    }
+
+    outDistance = distance;
+    return true;
+}
+
+math::Vec3 BoxCollider::normalAt(const math::Vec3& point) const
+{
+    const math::Vec3 half = m_size * 0.5;
+    const math::Vec3 local = point - m_position;
+
+    // the face the point sits closest to owns the normal
+    int nearest = 0;
+    double smallestGap = 1e30;
+
+    for (int i = 0; i < 3; i++)
+    {
+        const double extent = (i == 0) ? half.x : (i == 1) ? half.y : half.z;
+        const double gap = extent - std::abs(local.dot(m_axes[i]));
+
+        if (gap < smallestGap)
+        {
+            smallestGap = gap;
+            nearest = i;
+        }
+    }
+
+    return m_axes[nearest] * (local.dot(m_axes[nearest]) >= 0.0 ? 1.0 : -1.0);
+}
+
 // half width of the box measured along an arbitrary direction
 static double projectedRadius(const math::Vec3& half, const math::Vec3* axes, const math::Vec3& direction)
 {

@@ -6,8 +6,6 @@
 
 #include "Collider.h"
 
-#include <algorithm>
-
 namespace BulletPhysics {
 namespace collision {
 namespace collider {

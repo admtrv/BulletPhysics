@@ -28,14 +28,9 @@ void PhysicsWorld::step(double dt)
     integrate(dt);
     collide();
 
-    // after the solver, gravity leaves a resting body drifting until contacts cancel it
-    for (RigidBody* body : m_bodies)
-    {
-        if (body->isDynamic())
-        {
-            body->updateSleep(dt);
-        }
-    }
+    // islands are rebuilt from this step contacts, a pile sleeps as one piece
+    m_islands.build(m_bodies, m_manifolds);
+    m_islands.updateSleep(dt);
 }
 
 void PhysicsWorld::integrate(double dt)
@@ -51,20 +46,12 @@ void PhysicsWorld::integrate(double dt)
         if (body->isDynamic())
         {
             const math::Vec3 acceleration = m_gravity + body->getAccumulatedForces() * body->getInverseMass();
-            body->setVelocity(body->getVelocity() + acceleration * dt);
-
             const math::Vec3 angularAcceleration = body->getInverseInertia() * body->getAccumulatedTorque();
-            body->setAngularVelocity(body->getAngularVelocity() + angularAcceleration * dt);
+
+            body->applyImpulse(acceleration * dt, angularAcceleration * dt);
         }
 
-        // semi-implicit euler
-        body->setPosition(body->getPosition() + body->getVelocity() * dt);
-
-        // q' = q + 0.5 * w * q * dt, w as quaternion with zero scalar part
-        const math::Vec3& angularVelocity = body->getAngularVelocity();
-        const math::Quat spin{0.0, angularVelocity.x, angularVelocity.y, angularVelocity.z};
-
-        body->setOrientation(body->getOrientation() + spin * body->getOrientation() * (0.5 * dt));
+        body->advance(dt);
 
         if (body->isDynamic())
         {
@@ -265,6 +252,9 @@ void PhysicsWorld::addBody(RigidBody* body, collision::collider::Collider* colli
 
 void PhysicsWorld::removeBody(RigidBody* body)
 {
+    // whatever leaned on it has to fall now
+    m_islands.wake(body);
+
     auto it = std::find(m_bodies.begin(), m_bodies.end(), body);
     if (it != m_bodies.end())
     {

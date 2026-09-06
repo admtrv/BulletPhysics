@@ -55,10 +55,10 @@ math::Vec3 RigidBody::getVelocityAt(const math::Vec3& point) const
 
 void RigidBody::addForceAtPoint(const math::Vec3& force, const math::Vec3& point)
 {
-    m_forces += force;
+    addForce(force);
 
     // t = r x F, force through centre of mass gives no torque
-    m_torque += (point - m_position).cross(force);
+    addTorque((point - m_position).cross(force));
 }
 
 void RigidBody::applyDamping(double dt)
@@ -67,29 +67,29 @@ void RigidBody::applyDamping(double dt)
     m_angularVelocity *= std::max(1.0 - m_angularDamping * dt, 0.0);
 }
 
-void RigidBody::wake()
+void RigidBody::applyImpulse(const math::Vec3& linear, const math::Vec3& angular)
 {
-    m_sleeping = false;
-    m_stillTime = 0.0;
+    m_velocity += linear;
+    m_angularVelocity += angular;
 }
 
-void RigidBody::updateSleep(double dt)
+void RigidBody::advance(double dt)
 {
-    if (m_velocity.length() > SLEEP_LINEAR_SPEED || m_angularVelocity.length() > SLEEP_ANGULAR_SPEED)
-    {
-        m_stillTime = 0.0;
-        return;
-    }
+    // semi-implicit euler, velocity of this step carries the body
+    m_position += m_velocity * dt;
 
-    m_stillTime += dt;
+    // q' = q + 0.5 * w * q * dt, w as quaternion with zero scalar part
+    const math::Quat spin{0.0, m_angularVelocity.x, m_angularVelocity.y, m_angularVelocity.z};
 
-    if (m_stillTime >= SLEEP_DELAY)
-    {
-        m_sleeping = true;
+    setOrientation(m_orientation + spin * m_orientation * (0.5 * dt));
+}
 
-        m_velocity = math::Vec3{};
-        m_angularVelocity = math::Vec3{};
-    }
+void RigidBody::sleep()
+{
+    m_sleeping = true;
+
+    m_velocity = math::Vec3{};
+    m_angularVelocity = math::Vec3{};
 }
 
 void RigidBody::clearForces()

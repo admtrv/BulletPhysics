@@ -4,8 +4,12 @@
 
 #include "Collision.h"
 
+#include <algorithm>
+
 namespace BulletPhysics {
 namespace collision {
+
+using namespace collider;
 
 void Collision::addCollider(Collider* collider)
 {

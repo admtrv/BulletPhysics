@@ -4,8 +4,6 @@
 
 #pragma once
 
-#include <cmath>
-
 namespace BulletPhysics {
 namespace math {
 

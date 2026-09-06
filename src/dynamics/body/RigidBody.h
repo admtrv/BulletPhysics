@@ -53,7 +53,7 @@ public:
 
     // position
     const math::Vec3& getPosition() const { return m_position; }
-    void setPosition(const math::Vec3& pos) { m_position = pos; }
+    void setPosition(const math::Vec3& pos) { m_position = pos; wake(); }
 
     // orientation
     const math::Quat& getOrientation() const { return m_orientation; }
@@ -64,11 +64,11 @@ public:
     // linear
     const math::Vec3& getVelocity() const { return m_velocity; }
     math::Vec3 getVelocityAt(const math::Vec3& point) const;
-    void setVelocity(const math::Vec3& vel) { m_velocity = vel; }
+    void setVelocity(const math::Vec3& vel) { m_velocity = vel; wake(); }
 
     // angular
     const math::Vec3& getAngularVelocity() const { return m_angularVelocity; }
-    void setAngularVelocity(const math::Vec3& angularVel) { m_angularVelocity = angularVel; }
+    void setAngularVelocity(const math::Vec3& angularVel) { m_angularVelocity = angularVel; wake(); }
 
     // damping
 
@@ -82,18 +82,25 @@ public:
     double getAngularDamping() const { return m_angularDamping; }
     void setAngularDamping(double damping) { m_angularDamping = std::max(damping, 0.0); }
 
-    // sleep
+    // sleep, decided by the island the body belongs to
     bool isSleeping() const { return m_sleeping; }
-    void updateSleep(double dt);
-    void wake();
+
+    void sleep();
+    void wake() { m_sleeping = false; }
+
+    // solver side, moves the body without waking it, a resting pile would
+    // never settle otherwise
+    void applyImpulse(const math::Vec3& linear, const math::Vec3& angular);
+    void advance(double dt);
+    void separate(const math::Vec3& offset) { m_position += offset; }
 
     // forces
     const math::Vec3& getAccumulatedForces() const { return m_forces; }
     const math::Vec3& getAccumulatedTorque() const { return m_torque; }
 
-    void addForce(const math::Vec3& force) { m_forces += force; }
+    void addForce(const math::Vec3& force) { m_forces += force; wake(); }
     void addForceAtPoint(const math::Vec3& force, const math::Vec3& point);
-    void addTorque(const math::Vec3& torque) { m_torque += torque; }
+    void addTorque(const math::Vec3& torque) { m_torque += torque; wake(); }
 
     void clearForces();
 
@@ -120,7 +127,6 @@ private:
     double m_angularDamping = DEFAULT_ANGULAR_DAMPING;
 
     bool m_sleeping = false;
-    double m_stillTime = 0.0;
 
     // accumulators
     math::Vec3 m_forces{};

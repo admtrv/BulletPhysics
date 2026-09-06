@@ -5,10 +5,11 @@
 #pragma once
 
 #include "collision/Collision.h"
-#include "dynamics/ContactListener.h"
-#include "dynamics/ContactSolver.h"
+#include "dynamics/body/IslandManager.h"
+#include "dynamics/body/RigidBody.h"
+#include "dynamics/contact/ContactListener.h"
+#include "dynamics/contact/ContactSolver.h"
 #include "dynamics/PhysicsTimer.h"
-#include "dynamics/RigidBody.h"
 
 #include <vector>
 
@@ -62,6 +63,7 @@ private:
     // helpers
     void carryImpulses(const std::vector<collision::Manifold>& previous);
     void reportContacts(const std::vector<collision::Manifold>& previous) const;
+
     void syncColliders();
 
     // contents
@@ -78,6 +80,7 @@ private:
     // machinery
     collision::Collision m_collision;
     ContactSolver m_solver;
+    IslandManager m_islands;
     std::vector<collision::Manifold> m_manifolds;
 };
 

@@ -6,30 +6,27 @@
 
 #include "collision/collider/Collider.h"
 
-#include <algorithm>
 #include <vector>
 
 namespace BulletPhysics {
 namespace collision {
 
-using namespace collider;
-
 struct Manifold {
-    Collider* colliderA;
-    Collider* colliderB;
-    CollisionInfo info;
+    collider::Collider* colliderA;
+    collider::Collider* colliderB;
+    collider::CollisionInfo info;
 };
 
 class Collision {
 public:
-    void addCollider(Collider* collider);
-    void removeCollider(Collider* collider);
+    void addCollider(collider::Collider* collider);
+    void removeCollider(collider::Collider* collider);
     void clear();
 
     void detect(std::vector<Manifold>& manifolds);
 
 private:
-    std::vector<Collider*> m_colliders;
+    std::vector<collider::Collider*> m_colliders;
 };
 
 } // namespace collision

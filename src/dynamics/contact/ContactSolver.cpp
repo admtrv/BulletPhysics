@@ -4,7 +4,7 @@
 
 #include "ContactSolver.h"
 
-#include "dynamics/RigidBody.h"
+#include "dynamics/body/RigidBody.h"
 
 #include <algorithm>
 
@@ -26,6 +26,7 @@ struct ContactFrame {
 
     collision::PhysicsMaterial material;
 
+    // nothing to solve when neither side can move
     bool valid() const { return a && b && (a->getInverseMass() + b->getInverseMass()) > 0.0; }
 
     // relative velocity of the two bodies where they touch
@@ -52,11 +53,8 @@ struct ContactFrame {
             b->wake();
         }
 
-        a->setVelocity(a->getVelocity() - impulse * a->getInverseMass());
-        b->setVelocity(b->getVelocity() + impulse * b->getInverseMass());
-
-        a->setAngularVelocity(a->getAngularVelocity() - a->getInverseInertia() * armA.cross(impulse));
-        b->setAngularVelocity(b->getAngularVelocity() + b->getInverseInertia() * armB.cross(impulse));
+        a->applyImpulse(impulse * -a->getInverseMass(), a->getInverseInertia() * armA.cross(impulse) * -1.0);
+        b->applyImpulse(impulse * b->getInverseMass(), b->getInverseInertia() * armB.cross(impulse));
     }
 };
 
@@ -207,8 +205,8 @@ void ContactSolver::correctPosition(const collision::Manifold& manifold) const
     const double inverseMassSum = frame.a->getInverseMass() + frame.b->getInverseMass();
     const math::Vec3 separation = frame.normal * (excess * CORRECTION_RATE / inverseMassSum);
 
-    frame.a->setPosition(frame.a->getPosition() - separation * frame.a->getInverseMass());
-    frame.b->setPosition(frame.b->getPosition() + separation * frame.b->getInverseMass());
+    frame.a->separate(separation * -frame.a->getInverseMass());
+    frame.b->separate(separation * frame.b->getInverseMass());
 }
 
 } // namespace dynamics

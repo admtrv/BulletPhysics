@@ -22,6 +22,10 @@ public:
     const math::Vec3& getPosition() const override { return m_position; }
     void setPosition(const math::Vec3& pos) override { m_position = pos; }
 
+    // a sphere collides the same whichever way it faces, kept for debug drawing
+    const math::Quat& getOrientation() const { return m_orientation; }
+    void setOrientation(const math::Quat& orientation) override { m_orientation = orientation; }
+
     double getRadius() const { return m_radius; }
     void setRadius(double radius);
 
@@ -34,6 +38,7 @@ public:
 
 private:
     math::Vec3 m_position{};
+    math::Quat m_orientation{};
     double m_radius;
 };
 

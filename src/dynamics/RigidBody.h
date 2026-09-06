@@ -80,6 +80,8 @@ public:
     double getAngularDamping() const { return m_angularDamping; }
     void setAngularDamping(double damping) { m_angularDamping = std::max(damping, 0.0); }
 
+    void applyDamping(double dt);
+
     // sleep
     bool isSleeping() const { return m_sleeping; }
     void updateSleep(double dt);

@@ -40,6 +40,11 @@ void Collision::detect(std::vector<Manifold>& manifolds)
             Collider* a = m_colliders[i];
             Collider* b = m_colliders[j];
 
+            if (!a->collidesWith(*b))
+            {
+                continue;
+            }
+
             CollisionInfo info;
             if (a->testCollision(*b, info))
             {

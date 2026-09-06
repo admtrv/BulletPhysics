@@ -8,6 +8,8 @@
 #include "math/Quat.h"
 #include "math/Vec3.h"
 
+#include <cstdint>
+
 namespace BulletPhysics {
 namespace dynamics {
 
@@ -23,22 +25,22 @@ enum class CollisionShape {
     Ground,
 };
 
+// pair collides only when both sides accept the other
+using LayerMask = uint32_t;
+
+inline constexpr LayerMask LAYER_DEFAULT = 1u << 0;
+inline constexpr LayerMask LAYER_ALL = ~0u;
+
 // face on face needs several points, single one lets the box rock
 inline constexpr int MAX_CONTACT_POINTS = 4;
 
-// one point of the contact patch
 struct ContactPoint {
     math::Vec3 position{};
+    int feature = 0;            // what produced it, matched across steps
 
-    // what produced the point, matching it across steps carries the impulse over
-    int feature = 0;
-
-    // impulse held last step, friction runs along two fixed directions
     double normalImpulse = 0.0;
     double tangentImpulses[2]{};
-
-    // separating speed to reach, measured before the passes eat the approach
-    double targetSpeed = 0.0;
+    double targetSpeed = 0.0;   // separating speed to reach
 };
 
 struct CollisionInfo {
@@ -83,12 +85,27 @@ public:
     const PhysicsMaterial& getMaterial() const { return m_material; }
     void setMaterial(const PhysicsMaterial& material) { m_material = material; }
 
+    // layers
+    LayerMask getLayer() const { return m_layer; }
+    void setLayer(LayerMask layer) { m_layer = layer; }
+
+    LayerMask getMask() const { return m_mask; }
+    void setMask(LayerMask mask) { m_mask = mask; }
+
+    bool collidesWith(const Collider& other) const
+    {
+        return (m_mask & other.m_layer) != 0 && (other.m_mask & m_layer) != 0;
+    }
+
     dynamics::RigidBody* getBody() const { return m_body; }
     void setBody(dynamics::RigidBody* body) { m_body = body; }
 
 private:
     dynamics::RigidBody* m_body = nullptr;
     PhysicsMaterial m_material;
+
+    LayerMask m_layer = LAYER_DEFAULT;
+    LayerMask m_mask = LAYER_ALL;
 };
 
 } // namespace collider

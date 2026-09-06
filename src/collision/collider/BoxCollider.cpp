@@ -13,8 +13,9 @@ namespace collision {
 namespace collider {
 
 static constexpr double CONTACT_MARGIN = 0.01;   // corners just above surface still count, else the box rocks
+static constexpr double REST_TOLERANCE = 0.02;   // share of the box a resting face may be tilted by
 
-static constexpr int CORNERS_PER_BOX = 8;
+static constexpr int MAX_CLIP_POINTS = 8;        // a face cut by four planes cannot give more
 static constexpr int FEATURE_CLAMPED = 16;       // clamped point, no corner behind it
 
 BoxCollider::BoxCollider(const math::Vec3& size) : m_size(size) {}
@@ -205,18 +206,12 @@ bool BoxCollider::testCollisionWithBox(const BoxCollider& other, CollisionInfo& 
     outInfo.normal = (diff.dot(leastAxis) < 0.0) ? leastAxis * -1.0 : leastAxis;
     outInfo.penetration = leastOverlap;
 
-    // face lying on a face gives four points, which is what holds a stack up
+    // face against face gives a whole polygon, which is what holds a stack up
     outInfo.pointCount = 0;
 
-    collectCorners(other, outInfo.normal, outInfo.penetration, outInfo, 0);
+    clipFace(other, outInfo.normal, outInfo);
 
-    // the other box holds the face when its corners point away from the contact
-    if (outInfo.pointCount == 0)
-    {
-        other.collectCorners(*this, outInfo.normal * -1.0, outInfo.penetration, outInfo, CORNERS_PER_BOX);
-    }
-
-    // edge crossing an edge leaves no corner inside, fall back to the deepest one
+    // edge crossing an edge leaves no face to clip, fall back to the deepest corner
     if (outInfo.pointCount == 0)
     {
         math::Vec3 deepest = other.m_position;
@@ -245,80 +240,239 @@ bool BoxCollider::testCollisionWithBox(const BoxCollider& other, CollisionInfo& 
     return true;
 }
 
-// corners of source near the contact plane, a deeper one belongs to the far side
-void BoxCollider::collectCorners(const BoxCollider& source, const math::Vec3& normal, double penetration,
-                                 CollisionInfo& outInfo, int featureBase) const
+// the face most square to the normal, the one that actually rests on the contact
+int BoxCollider::faceAxis(const math::Vec3& normal, double& outSide) const
+{
+    int best = 0;
+    double bestDot = 0.0;
+
+    for (int i = 0; i < 3; i++)
+    {
+        const double dot = m_axes[i].dot(normal);
+
+        if (std::abs(dot) > std::abs(bestDot))
+        {
+            bestDot = dot;
+            best = i;
+        }
+    }
+
+    outSide = (bestDot > 0.0) ? 1.0 : -1.0;
+
+    return best;
+}
+
+// corners of one face, wound so clipping walks its edges in order
+void BoxCollider::faceCorners(int axis, double side, math::Vec3 outCorners[4]) const
 {
     const math::Vec3 half = m_size * 0.5;
-    const math::Vec3 sourceHalf = source.m_size * 0.5;
 
-    // how deep a corner may sit and still count as touching
-    const double reach = penetration + CONTACT_MARGIN;
+    const double extent = (axis == 0) ? half.x : (axis == 1) ? half.y : half.z;
+    const math::Vec3 centre = m_position + m_axes[axis] * (extent * side);
 
-    for (int i = 0; i < CORNERS_PER_BOX; i++)
+    const int u = (axis + 1) % 3;
+    const int v = (axis + 2) % 3;
+
+    const double uExtent = (u == 0) ? half.x : (u == 1) ? half.y : half.z;
+    const double vExtent = (v == 0) ? half.x : (v == 1) ? half.y : half.z;
+
+    const math::Vec3 uEdge = m_axes[u] * uExtent;
+    const math::Vec3 vEdge = m_axes[v] * vExtent;
+
+    outCorners[0] = centre - uEdge - vEdge;
+    outCorners[1] = centre + uEdge - vEdge;
+    outCorners[2] = centre + uEdge + vEdge;
+    outCorners[3] = centre - uEdge + vEdge;
+}
+
+// sutherland-hodgman, keeps what lies inside the plane and cuts the edges crossing it
+static int clipAgainstPlane(const math::Vec3* input, int count, const math::Vec3& planeNormal, double planeOffset,
+                            math::Vec3* output)
+{
+    int result = 0;
+
+    for (int i = 0; i < count; i++)
     {
-        const double sx = (i & 1) ? sourceHalf.x : -sourceHalf.x;
-        const double sy = (i & 2) ? sourceHalf.y : -sourceHalf.y;
-        const double sz = (i & 4) ? sourceHalf.z : -sourceHalf.z;
+        const math::Vec3& current = input[i];
+        const math::Vec3& next = input[(i + 1) % count];
 
-        const math::Vec3 corner = source.m_position
-                                + source.m_axes[0] * sx + source.m_axes[1] * sy + source.m_axes[2] * sz;
+        const double currentDistance = current.dot(planeNormal) - planeOffset;
+        const double nextDistance = next.dot(planeNormal) - planeOffset;
 
-        const math::Vec3 local = corner - m_position;
+        if (currentDistance <= 0.0)
+        {
+            output[result++] = current;
+        }
 
-        // distance past this box's surface along the contact normal
-        const double depth = projectedRadius(half, m_axes, normal) - local.dot(normal);
+        if ((currentDistance > 0.0) != (nextDistance > 0.0))
+        {
+            const double span = currentDistance - nextDistance;
 
-        if (depth < -CONTACT_MARGIN || depth > reach)
+            if (std::abs(span) > 1e-12)
+            {
+                output[result++] = current + (next - current) * (currentDistance / span);
+            }
+        }
+    }
+
+    return result;
+}
+
+// two faces overlap in a polygon, corners alone miss it when neither box has one inside
+void BoxCollider::clipFace(const BoxCollider& other, const math::Vec3& normal, CollisionInfo& outInfo) const
+{
+    double referenceSide = 0.0;
+    const int referenceAxis = faceAxis(normal, referenceSide);
+
+    // the incident face looks back at the contact, hence the flipped normal
+    double incidentSide = 0.0;
+    const int incidentAxis = other.faceAxis(normal * -1.0, incidentSide);
+
+    math::Vec3 polygon[MAX_CLIP_POINTS];
+    math::Vec3 clipped[MAX_CLIP_POINTS];
+
+    other.faceCorners(incidentAxis, incidentSide, polygon);
+    int count = 4;
+
+    const math::Vec3 half = m_size * 0.5;
+
+    // cut against the four sides of the reference face
+    for (int i = 0; i < 3 && count > 0; i++)
+    {
+        if (i == referenceAxis)
         {
             continue;
         }
 
-        // and within the face
-        bool inside = true;
+        const double extent = (i == 0) ? half.x : (i == 1) ? half.y : half.z;
+        const double centre = m_position.dot(m_axes[i]);
 
-        for (int axis = 0; axis < 3 && inside; axis++)
+        count = clipAgainstPlane(polygon, count, m_axes[i], centre + extent, clipped);
+        count = clipAgainstPlane(clipped, count, m_axes[i] * -1.0, -(centre - extent), polygon);
+    }
+
+    // keep what sits at the contact plane, the rest belongs to the far side
+    const double referenceExtent = (referenceAxis == 0) ? half.x : (referenceAxis == 1) ? half.y : half.z;
+    const double surface = m_position.dot(normal) + referenceExtent * referenceSide * m_axes[referenceAxis].dot(normal);
+
+    math::Vec3 touching[MAX_CLIP_POINTS];
+    int touchingCount = 0;
+
+    for (int i = 0; i < count; i++)
+    {
+        if (surface - polygon[i].dot(normal) >= -CONTACT_MARGIN)
         {
-            const double extent = (axis == 0) ? half.x : (axis == 1) ? half.y : half.z;
+            touching[touchingCount++] = polygon[i];
+        }
+    }
 
-            inside = std::abs(local.dot(m_axes[axis])) <= extent + CONTACT_MARGIN;
+    reducePoints(touching, touchingCount, outInfo);
+}
+
+// a manifold holds four, keep the widest spread or the patch stops resisting tipping
+void BoxCollider::reducePoints(const math::Vec3* points, int count, CollisionInfo& outInfo)
+{
+    if (count <= MAX_CONTACT_POINTS)
+    {
+        for (int i = 0; i < count; i++)
+        {
+            outInfo.addPoint(points[i], i);
         }
 
-        if (inside)
+        return;
+    }
+
+    math::Vec3 centre{};
+    for (int i = 0; i < count; i++)
+    {
+        centre += points[i];
+    }
+    centre = centre / static_cast<double>(count);
+
+    bool taken[MAX_CLIP_POINTS]{};
+
+    // first the corner furthest out, then the one furthest from those already kept
+    for (int picked = 0; picked < MAX_CONTACT_POINTS; picked++)
+    {
+        int best = -1;
+        double bestDistance = -1.0;
+
+        for (int i = 0; i < count; i++)
         {
-            outInfo.addPoint(corner, featureBase + i);
+            if (taken[i])
+            {
+                continue;
+            }
+
+            double distance = (points[i] - centre).length();
+
+            for (int j = 0; j < count; j++)
+            {
+                if (taken[j])
+                {
+                    distance = std::min(distance, (points[i] - points[j]).length());
+                }
+            }
+
+            if (distance > bestDistance)
+            {
+                bestDistance = distance;
+                best = i;
+            }
         }
+
+        if (best < 0)
+        {
+            break;
+        }
+
+        taken[best] = true;
+        outInfo.addPoint(points[best], picked);
     }
 }
 
 bool BoxCollider::testCollisionWithGround(const GroundCollider& ground, CollisionInfo& outInfo) const
 {
-    double groundY = ground.getGroundY();
-    math::Vec3 half = m_size * 0.5;
+    const double groundY = ground.getGroundY();
+    const math::Vec3 half = m_size * 0.5;
 
+    math::Vec3 corners[8];
     double lowestY = m_position.y;
-
-    // every corner under the plane, flat face gives four and stops rocking
-    outInfo.pointCount = 0;
 
     for (int i = 0; i < 8; i++)
     {
-        double sx = (i & 1) ? half.x : -half.x;
-        double sy = (i & 2) ? half.y : -half.y;
-        double sz = (i & 4) ? half.z : -half.z;
+        const double sx = (i & 1) ? half.x : -half.x;
+        const double sy = (i & 2) ? half.y : -half.y;
+        const double sz = (i & 4) ? half.z : -half.z;
 
-        const math::Vec3 vertex = m_position + m_axes[0] * sx + m_axes[1] * sy + m_axes[2] * sz;
+        corners[i] = m_position + m_axes[0] * sx + m_axes[1] * sy + m_axes[2] * sz;
 
-        if (vertex.y < lowestY)
+        lowestY = std::min(lowestY, corners[i].y);
+    }
+
+    if (lowestY >= groundY + CONTACT_MARGIN)
+    {
+        return false;
+    }
+
+    // a tilt of one degree already lifts the far corners past a fixed margin
+    const double reach = std::max(CONTACT_MARGIN, m_size.length() * REST_TOLERANCE);
+
+    // every corner near the plane, flat face gives four and stops rocking
+    outInfo.pointCount = 0;
+
+    math::Vec3 touching[8];
+    int touchingCount = 0;
+
+    for (int i = 0; i < 8; i++)
+    {
+        if (corners[i].y < lowestY + reach)
         {
-            lowestY = vertex.y;
-        }
-
-        if (vertex.y < groundY + CONTACT_MARGIN)
-        {
-            outInfo.addPoint({vertex.x, groundY, vertex.z}, i);
+            touching[touchingCount++] = {corners[i].x, groundY, corners[i].z};
         }
     }
+
+    reducePoints(touching, touchingCount, outInfo);
 
     if (outInfo.pointCount > 0)
     {

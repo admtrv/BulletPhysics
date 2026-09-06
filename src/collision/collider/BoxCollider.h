@@ -37,7 +37,11 @@ public:
     bool testCollisionWithGround(const GroundCollider& ground, CollisionInfo& outInfo) const;
 
 private:
-    void collectCorners(const BoxCollider& source, const math::Vec3& normal, double penetration, CollisionInfo& outInfo, int featureBase) const;
+    int faceAxis(const math::Vec3& normal, double& outSide) const;
+    void faceCorners(int axis, double side, math::Vec3 outCorners[4]) const;
+    void clipFace(const BoxCollider& other, const math::Vec3& normal, CollisionInfo& outInfo) const;
+
+    static void reducePoints(const math::Vec3* points, int count, CollisionInfo& outInfo);
 
     math::Vec3 m_position{};
     math::Vec3 m_size;

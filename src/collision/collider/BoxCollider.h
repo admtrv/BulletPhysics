@@ -33,11 +33,12 @@ public:
     const math::Vec3* getAxes() const { return m_axes; }
 
     bool testCollision(const Collider& other, CollisionInfo& outInfo) const override;
-
     bool testCollisionWithBox(const BoxCollider& box, CollisionInfo& outInfo) const;
     bool testCollisionWithGround(const GroundCollider& ground, CollisionInfo& outInfo) const;
 
 private:
+    void collectCorners(const BoxCollider& source, const math::Vec3& normal, double penetration, CollisionInfo& outInfo, int featureBase) const;
+
     math::Vec3 m_position{};
     math::Vec3 m_size;
     math::Vec3 m_axes[3] {

@@ -55,13 +55,16 @@ private:
     void integrate(double dt);
     void collide();
 
+    void carryImpulses(const std::vector<collision::Manifold>& previous);
+    void syncColliders();
+
     // contents
     std::vector<RigidBody*> m_bodies;
     std::vector<collision::collider::Collider*> m_colliders;
 
     // parameters
     math::Vec3 m_gravity = DEFAULT_GRAVITY;
-    int m_solverIterations = 8;
+    int m_solverIterations = 20;
 
     PhysicsTimer m_timer;
 

@@ -55,7 +55,7 @@ bool SphereCollider::testCollisionWithSphere(const SphereCollider& sphere, Colli
     outInfo.penetration = contactDistance - distance;
 
     outInfo.pointCount = 0;
-    outInfo.addPoint(m_position + outInfo.normal * (m_radius - outInfo.penetration * 0.5));
+    outInfo.addPoint(m_position + outInfo.normal * (m_radius - outInfo.penetration * 0.5), 0);
 
     return true;
 }
@@ -91,7 +91,7 @@ bool SphereCollider::testCollisionWithBox(const BoxCollider& box, CollisionInfo&
         outInfo.normal = diff * (1.0 / distance);
         outInfo.penetration = m_radius - distance;
         outInfo.pointCount = 0;
-        outInfo.addPoint(closest);
+        outInfo.addPoint(closest, 0);
         return true;
     }
 
@@ -116,7 +116,7 @@ bool SphereCollider::testCollisionWithBox(const BoxCollider& box, CollisionInfo&
     outInfo.normal = axes[shallowest] * sign;
     outInfo.penetration = m_radius + smallestGap;
     outInfo.pointCount = 0;
-    outInfo.addPoint(closest);
+    outInfo.addPoint(closest, 0);
 
     return true;
 }
@@ -136,7 +136,7 @@ bool SphereCollider::testCollisionWithGround(const GroundCollider& ground, Colli
     outInfo.penetration = groundY - lowest;
 
     outInfo.pointCount = 0;
-    outInfo.addPoint({m_position.x, groundY, m_position.z});
+    outInfo.addPoint({m_position.x, groundY, m_position.z}, 0);
 
     return true;
 }

@@ -6,13 +6,21 @@
 
 #include "collision/Collision.h"
 
+#include <vector>
+
 namespace BulletPhysics {
 namespace dynamics {
 
-// resolves contacts so bodies stop moving into each other
+// resolves contacts, impulses carry into the next step or no stack ever settles
 class ContactSolver {
 public:
-    void solveVelocity(const collision::Manifold& manifold) const;
+    // separating speed each contact aims for, measured before any pass
+    void prepare(std::vector<collision::Manifold>& manifolds) const;
+
+    // reapply what the contacts held last step
+    void warmStart(std::vector<collision::Manifold>& manifolds) const;
+
+    void solveVelocity(collision::Manifold& manifold) const;
     void correctPosition(const collision::Manifold& manifold) const;
 };
 

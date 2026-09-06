@@ -9,14 +9,6 @@
 namespace BulletPhysics {
 namespace dynamics {
 
-// motion bled off per second, keeps bodies from drifting forever
-static constexpr double LINEAR_DAMPING = 0.05;
-static constexpr double ANGULAR_DAMPING = 0.5;
-
-// below this a body counts as standing still
-static constexpr double SLEEP_LINEAR_SPEED = 0.05;
-static constexpr double SLEEP_ANGULAR_SPEED = 0.05;
-
 // simulation
 
 int PhysicsWorld::update(double frameTime)
@@ -35,13 +27,22 @@ void PhysicsWorld::step(double dt)
 {
     integrate(dt);
     collide();
+
+    // after the solver, gravity leaves a resting body drifting until contacts cancel it
+    for (RigidBody* body : m_bodies)
+    {
+        if (body->isDynamic())
+        {
+            body->updateSleep(dt);
+        }
+    }
 }
 
 void PhysicsWorld::integrate(double dt)
 {
     for (RigidBody* body : m_bodies)
     {
-        if (!body->isDynamic())
+        if (!body->isDynamic() || body->isSleeping())
         {
             continue;
         }
@@ -62,28 +63,31 @@ void PhysicsWorld::integrate(double dt)
 
         body->setOrientation(body->getOrientation() + spin * body->getOrientation() * (0.5 * dt));
 
-        // bleed off motion, nothing comes to rest otherwise
-        body->setVelocity(body->getVelocity() * std::max(0.0, 1.0 - LINEAR_DAMPING * dt));
-        body->setAngularVelocity(body->getAngularVelocity() * std::max(0.0, 1.0 - ANGULAR_DAMPING * dt));
+        body->setVelocity(body->getVelocity() * body->dampingOver(body->getLinearDamping(), dt));
+        body->setAngularVelocity(body->getAngularVelocity() * body->dampingOver(body->getAngularDamping(), dt));
 
         body->clearForces();
     }
 
-    for (auto* collider : m_colliders)
-    {
-        collider->setPosition(collider->getBody()->getPosition());
-        collider->setOrientation(collider->getBody()->getOrientation());
-    }
+    syncColliders();
 }
 
 void PhysicsWorld::collide()
 {
+    std::vector<collision::Manifold> previous;
+    previous.swap(m_manifolds);
+
     m_collision.detect(m_manifolds);
 
-    // one pass leaves stacks sagging, contact sees only what came before
+    carryImpulses(previous);
+
+    m_solver.prepare(m_manifolds);
+    m_solver.warmStart(m_manifolds);
+
+    // impulses accumulate over the passes, each contact sees what the others held
     for (int iteration = 0; iteration < m_solverIterations; iteration++)
     {
-        for (const auto& manifold : m_manifolds)
+        for (auto& manifold : m_manifolds)
         {
             m_solver.solveVelocity(manifold);
         }
@@ -94,33 +98,50 @@ void PhysicsWorld::collide()
         m_solver.correctPosition(manifold);
     }
 
-    // motion this slow is solver noise, body would creep forever
-    for (const auto& manifold : m_manifolds)
-    {
-        for (auto* collider : {manifold.colliderA, manifold.colliderB})
-        {
-            RigidBody* body = collider->getBody();
-            if (!body || !body->isDynamic())
-            {
-                continue;
-            }
+    syncColliders();
+}
 
-            if (body->getVelocity().length() < SLEEP_LINEAR_SPEED)
-            {
-                body->setVelocity({});
-            }
-
-            if (body->getAngularVelocity().length() < SLEEP_ANGULAR_SPEED)
-            {
-                body->setAngularVelocity({});
-            }
-        }
-    }
-
+void PhysicsWorld::syncColliders()
+{
     for (auto* collider : m_colliders)
     {
         collider->setPosition(collider->getBody()->getPosition());
         collider->setOrientation(collider->getBody()->getOrientation());
+    }
+}
+
+void PhysicsWorld::carryImpulses(const std::vector<collision::Manifold>& previous)
+{
+    for (auto& manifold : m_manifolds)
+    {
+        const auto match = std::find_if(previous.begin(), previous.end(), [&manifold](const auto& old) {
+            return old.colliderA == manifold.colliderA && old.colliderB == manifold.colliderB;
+        });
+
+        if (match == previous.end())
+        {
+            continue;
+        }
+
+        // matched by what produced them, their order shifts as the bodies turn
+        for (int i = 0; i < manifold.info.pointCount; i++)
+        {
+            auto& point = manifold.info.points[i];
+
+            for (int j = 0; j < match->info.pointCount; j++)
+            {
+                const auto& old = match->info.points[j];
+
+                if (point.feature == old.feature)
+                {
+                    point.normalImpulse = old.normalImpulse;
+                    point.tangentImpulses[0] = old.tangentImpulses[0];
+                    point.tangentImpulses[1] = old.tangentImpulses[1];
+
+                    break;
+                }
+            }
+        }
     }
 }
 
@@ -154,20 +175,19 @@ void PhysicsWorld::removeBody(RigidBody* body)
         m_bodies.erase(it);
     }
 
-    for (auto colliderIt = m_colliders.begin(); colliderIt != m_colliders.end();)
-    {
-        if ((*colliderIt)->getBody() == body)
+    const auto detached = std::remove_if(m_colliders.begin(), m_colliders.end(), [this, body](auto* collider) {
+        if (collider->getBody() != body)
         {
-            m_collision.removeCollider(*colliderIt);
-            (*colliderIt)->setBody(nullptr);
+            return false;
+        }
 
-            colliderIt = m_colliders.erase(colliderIt);
-        }
-        else
-        {
-            ++colliderIt;
-        }
-    }
+        m_collision.removeCollider(collider);
+        collider->setBody(nullptr);
+
+        return true;
+    });
+
+    m_colliders.erase(detached, m_colliders.end());
 }
 
 void PhysicsWorld::clear()

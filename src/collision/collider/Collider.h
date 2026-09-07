@@ -5,7 +5,7 @@
 #pragma once
 
 #include "collision/PhysicsMaterial.h"
-#include "collision/Ray.h"
+#include "collision/Query.h"
 #include "math/Quat.h"
 #include "math/Vec3.h"
 
@@ -73,19 +73,23 @@ public:
 
     virtual CollisionShape getShape() const = 0;
 
+    // position
     virtual const math::Vec3& getPosition() const = 0;
     virtual void setPosition(const math::Vec3& pos) = 0;
 
-    // shapes looking same from every side ignore it
+    // orientation
     virtual void setOrientation(const math::Quat& orientation) {}
 
-    // outInfo normal points from this collider to other
-    virtual bool testCollision(const Collider& other, CollisionInfo& outInfo) const = 0;
+    // contact
+    virtual bool testCollision(const Collider& other, CollisionInfo& outInfo) const = 0;   // normal points from this collider to other
 
-    // nearest hit along the ray, distance only, caller fills the rest
+    // queries
     virtual bool raycast(const Ray& ray, double& outDistance) const = 0;
+    virtual bool sweep(const Sweep& sweep, double& outDistance) const = 0;
+    virtual double thickness(const Ray& ray) const = 0;
 
-    // outward normal at a point known to sit on the surface
+    // shape
+    virtual double boundingRadius() const = 0;
     virtual math::Vec3 normalAt(const math::Vec3& point) const = 0;
 
     // surface
@@ -108,6 +112,7 @@ public:
         return (m_mask & other.m_layer) != 0 && (other.m_mask & m_layer) != 0;
     }
 
+    // body
     dynamics::RigidBody* getBody() const { return m_body; }
     void setBody(dynamics::RigidBody* body) { m_body = body; }
 

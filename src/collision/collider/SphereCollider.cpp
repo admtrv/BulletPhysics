@@ -38,42 +38,6 @@ bool SphereCollider::testCollision(const Collider& other, CollisionInfo& outInfo
     }
 }
 
-bool SphereCollider::raycast(const Ray& ray, double& outDistance) const
-{
-    const math::Vec3 toCentre = m_position - ray.origin;
-
-    const double along = toCentre.dot(ray.direction);
-    const double offCentre = toCentre.dot(toCentre) - along * along;
-
-    const double radius2 = m_radius * m_radius;
-    if (offCentre > radius2)
-    {
-        return false;
-    }
-
-    const double half = std::sqrt(radius2 - offCentre);
-
-    // near side first, far side when the ray starts inside
-    double distance = along - half;
-    if (distance < 0.0)
-    {
-        distance = along + half;
-    }
-
-    if (distance < 0.0 || distance > ray.maxDistance)
-    {
-        return false;
-    }
-
-    outDistance = distance;
-    return true;
-}
-
-math::Vec3 SphereCollider::normalAt(const math::Vec3& point) const
-{
-    return (point - m_position).normalized();
-}
-
 bool SphereCollider::testCollisionWithSphere(const SphereCollider& sphere, CollisionInfo& outInfo) const
 {
     const math::Vec3 diff = sphere.m_position - m_position;
@@ -173,6 +137,98 @@ bool SphereCollider::testCollisionWithGround(const GroundCollider& ground, Colli
 
     outInfo.pointCount = 0;
     outInfo.addPoint({m_position.x, groundY, m_position.z}, 0);
+
+    return true;
+}
+
+// queries
+
+bool SphereCollider::raycast(const Ray& ray, double& outDistance) const
+{
+    double entry = 0.0;
+    double exit = 0.0;
+
+    if (!span(ray.origin, ray.direction, 0.0, entry, exit))
+    {
+        return false;
+    }
+
+    // near side first, far side when the ray starts inside
+    const double distance = (entry >= 0.0) ? entry : exit;
+
+    if (distance < 0.0 || distance > ray.maxDistance)
+    {
+        return false;
+    }
+
+    outDistance = distance;
+    return true;
+}
+
+bool SphereCollider::sweep(const Sweep& sweep, double& outDistance) const
+{
+    double entry = 0.0;
+    double exit = 0.0;
+
+    // sphere against sphere, the sum of the radii is exact, no corners to round off
+    if (!span(sweep.origin, sweep.direction, sweep.radius, entry, exit))
+    {
+        return false;
+    }
+
+    // behind, out of reach, or already overlapping at the start, none is a crossing
+    if (entry < 0.0 || entry > sweep.distance)
+    {
+        return false;
+    }
+
+    outDistance = entry;
+    return true;
+}
+
+double SphereCollider::thickness(const Ray& ray) const
+{
+    double entry = 0.0;
+    double exit = 0.0;
+
+    if (!span(ray.origin, ray.direction, 0.0, entry, exit) || exit < 0.0)
+    {
+        return 0.0;
+    }
+
+    // a ray starting inside only has the part still ahead of it
+    return exit - std::max(entry, 0.0);
+}
+
+// shape
+
+math::Vec3 SphereCollider::normalAt(const math::Vec3& point) const
+{
+    return (point - m_position).normalized();
+}
+
+// helpers
+
+// where a line enters and leaves the sphere, grown by margin so a swept sphere becomes a point
+bool SphereCollider::span(const math::Vec3& origin, const math::Vec3& direction, double margin, double& outEntry, double& outExit) const
+{
+    const math::Vec3 toCentre = m_position - origin;
+
+    const double along = toCentre.dot(direction);
+    const double offCentre = toCentre.dot(toCentre) - along * along;
+
+    const double radius = m_radius + margin;
+    const double radius2 = radius * radius;
+
+    if (offCentre > radius2)
+    {
+        return false;
+    }
+
+    const double half = std::sqrt(radius2 - offCentre);
+
+    outEntry = along - half;
+    outExit = along + half;
 
     return true;
 }

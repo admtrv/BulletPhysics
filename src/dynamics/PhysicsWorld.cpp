@@ -26,6 +26,7 @@ int PhysicsWorld::update(double frameTime)
 void PhysicsWorld::step(double dt)
 {
     integrate(dt);
+    sweepFast(dt);
     collide();
 
     // islands are rebuilt from this step contacts, a pile sleeps as one piece
@@ -62,6 +63,46 @@ void PhysicsWorld::integrate(double dt)
     }
 
     syncColliders();
+}
+
+void PhysicsWorld::sweepFast(double dt)
+{
+    for (auto* collider : m_colliders)
+    {
+        RigidBody* body = collider->getBody();
+
+        if (!body->isContinuous() || !body->isMovable() || body->isSleeping())
+        {
+            continue;
+        }
+
+        const math::Vec3 travel = body->getVelocity() * dt;
+        const double distance = travel.length();
+
+        const double radius = collider->boundingRadius();
+
+        // a step shorter than the shape cannot skip anything, the usual test sees it
+        if (distance < radius)
+        {
+            continue;
+        }
+
+        // where it stood before this step, the sweep starts from there
+        const math::Vec3 from = body->getPosition() - travel;
+
+        const collision::Sweep query{from, travel * (1.0 / distance), distance, radius};
+
+        collision::SweepHit hit;
+        if (!sweep(query, hit, collider))
+        {
+            continue;
+        }
+
+        // pull it back to the touch, the solver takes the contact from there
+        body->separate(from + query.direction * hit.distance - body->getPosition());
+
+        collider->setPosition(body->getPosition());
+    }
 }
 
 void PhysicsWorld::collide()
@@ -224,6 +265,59 @@ bool PhysicsWorld::raycast(const collision::Ray& ray, collision::RayHit& outHit,
     {
         outHit.normal = outHit.normal * -1.0;
     }
+
+    return true;
+}
+
+bool PhysicsWorld::sweep(const collision::Sweep& sweep, collision::SweepHit& outHit,
+                         const collision::collider::Collider* ignore,
+                         collision::collider::LayerMask mask) const
+{
+    outHit = {};
+
+    double nearest = sweep.distance;
+
+    for (auto* collider : m_colliders)
+    {
+        if (collider == ignore || (mask & collider->getLayer()) == 0 || collider->isTrigger())
+        {
+            continue;
+        }
+
+        // the pair still has to accept each other, a sweep is no way around the layers
+        if (ignore && !ignore->collidesWith(*collider))
+        {
+            continue;
+        }
+
+        double distance = 0.0;
+        if (!collider->sweep(sweep, distance) || distance >= nearest)
+        {
+            continue;
+        }
+
+        nearest = distance;
+
+        outHit.collider = collider;
+        outHit.distance = distance;
+    }
+
+    if (!outHit.collider)
+    {
+        return false;
+    }
+
+    // the sphere centre where it stopped, the surface is one radius closer
+    const math::Vec3 centre = sweep.origin + sweep.direction * outHit.distance;
+
+    outHit.normal = outHit.collider->normalAt(centre);
+
+    if (outHit.normal.dot(sweep.direction) > 0.0)
+    {
+        outHit.normal = outHit.normal * -1.0;
+    }
+
+    outHit.point = centre + outHit.normal * -sweep.radius;
 
     return true;
 }

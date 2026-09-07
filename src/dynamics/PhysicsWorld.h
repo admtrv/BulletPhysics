@@ -35,6 +35,7 @@ public:
 
     // queries
     bool raycast(const collision::Ray& ray, collision::RayHit& outHit, collision::collider::LayerMask mask = collision::collider::LAYER_ALL) const;
+    bool sweep(const collision::Sweep& sweep, collision::SweepHit& outHit, const collision::collider::Collider* ignore = nullptr, collision::collider::LayerMask mask = collision::collider::LAYER_ALL) const;
 
     // parameters
     const math::Vec3& getGravity() const { return m_gravity; }
@@ -58,6 +59,7 @@ public:
 private:
     // step phases
     void integrate(double dt);
+    void sweepFast(double dt);
     void collide();
 
     // helpers

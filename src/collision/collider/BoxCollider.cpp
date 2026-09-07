@@ -34,6 +34,8 @@ void BoxCollider::setOrientation(const math::Quat& orientation)
     m_axes[2] = orientation.rotate({0.0, 0.0, 1.0});
 }
 
+// contact
+
 bool BoxCollider::testCollision(const Collider& other, CollisionInfo& outInfo) const
 {
     switch (other.getShape()) {
@@ -56,86 +58,6 @@ bool BoxCollider::testCollision(const Collider& other, CollisionInfo& outInfo) c
         default:
             return false;
     }
-}
-
-bool BoxCollider::raycast(const Ray& ray, double& outDistance) const
-{
-    const math::Vec3 half = m_size * 0.5;
-    const math::Vec3 toCentre = m_position - ray.origin;
-
-    // slab method run in the box own axes, so a turned box needs no special case
-    double entry = -1e30;
-    double exit = 1e30;
-
-    for (int i = 0; i < 3; i++)
-    {
-        const double extent = (i == 0) ? half.x : (i == 1) ? half.y : half.z;
-
-        const double along = ray.direction.dot(m_axes[i]);
-        const double centre = toCentre.dot(m_axes[i]);
-
-        if (std::abs(along) < 1e-9)
-        {
-            // ray runs parallel to this pair of faces, it must start between them
-            if (std::abs(centre) > extent)
-            {
-                return false;
-            }
-
-            continue;
-        }
-
-        double near = (centre - extent) / along;
-        double far = (centre + extent) / along;
-
-        if (near > far)
-        {
-            std::swap(near, far);
-        }
-
-        entry = std::max(entry, near);
-        exit = std::min(exit, far);
-
-        if (entry > exit)
-        {
-            return false;
-        }
-    }
-
-    // a ray starting inside leaves through the far face
-    const double distance = (entry >= 0.0) ? entry : exit;
-
-    if (distance < 0.0 || distance > ray.maxDistance)
-    {
-        return false;
-    }
-
-    outDistance = distance;
-    return true;
-}
-
-math::Vec3 BoxCollider::normalAt(const math::Vec3& point) const
-{
-    const math::Vec3 half = m_size * 0.5;
-    const math::Vec3 local = point - m_position;
-
-    // the face the point sits closest to owns the normal
-    int nearest = 0;
-    double smallestGap = 1e30;
-
-    for (int i = 0; i < 3; i++)
-    {
-        const double extent = (i == 0) ? half.x : (i == 1) ? half.y : half.z;
-        const double gap = extent - std::abs(local.dot(m_axes[i]));
-
-        if (gap < smallestGap)
-        {
-            smallestGap = gap;
-            nearest = i;
-        }
-    }
-
-    return m_axes[nearest] * (local.dot(m_axes[nearest]) >= 0.0 ? 1.0 : -1.0);
 }
 
 // half width of the box measured along an arbitrary direction
@@ -484,6 +406,141 @@ bool BoxCollider::testCollisionWithGround(const GroundCollider& ground, Collisio
     }
 
     return false;
+}
+
+// queries
+
+bool BoxCollider::raycast(const Ray& ray, double& outDistance) const
+{
+    double entry = 0.0;
+    double exit = 0.0;
+
+    if (!slab(ray.origin, ray.direction, 0.0, entry, exit))
+    {
+        return false;
+    }
+
+    // a ray starting inside leaves through the far face
+    const double distance = (entry >= 0.0) ? entry : exit;
+
+    if (distance < 0.0 || distance > ray.maxDistance)
+    {
+        return false;
+    }
+
+    outDistance = distance;
+    return true;
+}
+
+bool BoxCollider::sweep(const Sweep& sweep, double& outDistance) const
+{
+    double entry = 0.0;
+    double exit = 0.0;
+
+    // grown by the radius the sphere becomes a point, square corners catch it early
+    if (!slab(sweep.origin, sweep.direction, sweep.radius, entry, exit))
+    {
+        return false;
+    }
+
+    // behind, out of reach, or already overlapping at the start, none is a crossing
+    if (entry < 0.0 || entry > sweep.distance)
+    {
+        return false;
+    }
+
+    outDistance = entry;
+    return true;
+}
+
+double BoxCollider::thickness(const Ray& ray) const
+{
+    double entry = 0.0;
+    double exit = 0.0;
+
+    if (!slab(ray.origin, ray.direction, 0.0, entry, exit) || exit < 0.0)
+    {
+        return 0.0;
+    }
+
+    // a ray starting inside only has the part still ahead of it
+    return exit - std::max(entry, 0.0);
+}
+
+// shape
+
+math::Vec3 BoxCollider::normalAt(const math::Vec3& point) const
+{
+    const math::Vec3 half = m_size * 0.5;
+    const math::Vec3 local = point - m_position;
+
+    // the face the point sits closest to owns the normal
+    int nearest = 0;
+    double smallestGap = 1e30;
+
+    for (int i = 0; i < 3; i++)
+    {
+        const double extent = (i == 0) ? half.x : (i == 1) ? half.y : half.z;
+        const double gap = extent - std::abs(local.dot(m_axes[i]));
+
+        if (gap < smallestGap)
+        {
+            smallestGap = gap;
+            nearest = i;
+        }
+    }
+
+    return m_axes[nearest] * (local.dot(m_axes[nearest]) >= 0.0 ? 1.0 : -1.0);
+}
+
+// helpers
+
+// where a line enters and leaves the box, grown by margin so a sphere can be swept as a point
+bool BoxCollider::slab(const math::Vec3& origin, const math::Vec3& direction, double margin, double& outEntry, double& outExit) const
+{
+    const math::Vec3 half = m_size * 0.5;
+    const math::Vec3 toCentre = m_position - origin;
+
+    // run in the box own axes, so a turned box needs no special case
+    outEntry = -1e30;
+    outExit = 1e30;
+
+    for (int i = 0; i < 3; i++)
+    {
+        const double extent = ((i == 0) ? half.x : (i == 1) ? half.y : half.z) + margin;
+
+        const double along = direction.dot(m_axes[i]);
+        const double centre = toCentre.dot(m_axes[i]);
+
+        if (std::abs(along) < 1e-9)
+        {
+            // line runs parallel to this pair of faces, it must start between them
+            if (std::abs(centre) > extent)
+            {
+                return false;
+            }
+
+            continue;
+        }
+
+        double near = (centre - extent) / along;
+        double far = (centre + extent) / along;
+
+        if (near > far)
+        {
+            std::swap(near, far);
+        }
+
+        outEntry = std::max(outEntry, near);
+        outExit = std::min(outExit, far);
+
+        if (outEntry > outExit)
+        {
+            return false;
+        }
+    }
+
+    return true;
 }
 
 } // namespace collider

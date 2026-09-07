@@ -82,6 +82,10 @@ public:
     double getAngularDamping() const { return m_angularDamping; }
     void setAngularDamping(double damping) { m_angularDamping = std::max(damping, 0.0); }
 
+    // checked along the path it travels, for a body fast enough to pass through a wall
+    bool isContinuous() const { return m_continuous; }
+    void setContinuous(bool continuous) { m_continuous = continuous; }
+
     // sleep, decided by the island the body belongs to
     bool isSleeping() const { return m_sleeping; }
 
@@ -127,6 +131,7 @@ private:
     double m_angularDamping = DEFAULT_ANGULAR_DAMPING;
 
     bool m_sleeping = false;
+    bool m_continuous = false;
 
     // accumulators
     math::Vec3 m_forces{};

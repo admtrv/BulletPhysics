@@ -19,10 +19,14 @@ public:
 
     CollisionShape getShape() const override { return CollisionShape::Box; }
 
+    // position
     const math::Vec3& getPosition() const override { return m_position; }
     void setPosition(const math::Vec3& pos) override { m_position = pos; }
+
+    // orientation
     void setOrientation(const math::Quat& orientation) override;
 
+    // size
     const math::Vec3& getSize() const { return m_size; }
     void setSize(const math::Vec3& size) { m_size = size; }
 
@@ -30,13 +34,24 @@ public:
     void setAxes(const math::Vec3& axisX, const math::Vec3& axisY, const math::Vec3& axisZ);
     const math::Vec3* getAxes() const { return m_axes; }
 
+    // contact
     bool testCollision(const Collider& other, CollisionInfo& outInfo) const override;
-    bool raycast(const Ray& ray, double& outDistance) const override;
-    math::Vec3 normalAt(const math::Vec3& point) const override;
     bool testCollisionWithBox(const BoxCollider& box, CollisionInfo& outInfo) const;
     bool testCollisionWithGround(const GroundCollider& ground, CollisionInfo& outInfo) const;
 
+    // queries
+    bool raycast(const Ray& ray, double& outDistance) const override;
+    bool sweep(const Sweep& sweep, double& outDistance) const override;
+    double thickness(const Ray& ray) const override;
+
+    // shape
+    double boundingRadius() const override { return m_size.length() * 0.5; }   // half the diagonal
+    math::Vec3 normalAt(const math::Vec3& point) const override;
+
 private:
+    bool slab(const math::Vec3& origin, const math::Vec3& direction, double margin, double& outEntry, double& outExit) const;
+
+    // contact points
     int faceAxis(const math::Vec3& normal, double& outSide) const;
     void faceCorners(int axis, double side, math::Vec3 outCorners[4]) const;
     void clipFace(const BoxCollider& other, const math::Vec3& normal, CollisionInfo& outInfo) const;

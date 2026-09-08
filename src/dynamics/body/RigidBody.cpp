@@ -67,14 +67,43 @@ void RigidBody::applyDamping(double dt)
     m_angularVelocity *= std::max(1.0 - m_angularDamping * dt, 0.0);
 }
 
+void RigidBody::applyConstraints(math::Vec3& linear, math::Vec3& angular) const
+{
+    if (m_constraints == CONSTRAIN_NONE)
+    {
+        return;
+    }
+
+    if (m_constraints & FREEZE_POSITION_X) linear.x = 0.0;
+    if (m_constraints & FREEZE_POSITION_Y) linear.y = 0.0;
+    if (m_constraints & FREEZE_POSITION_Z) linear.z = 0.0;
+
+    if (m_constraints & FREEZE_ROTATION_X) angular.x = 0.0;
+    if (m_constraints & FREEZE_ROTATION_Y) angular.y = 0.0;
+    if (m_constraints & FREEZE_ROTATION_Z) angular.z = 0.0;
+}
+
 void RigidBody::applyImpulse(const math::Vec3& linear, const math::Vec3& angular)
 {
     m_velocity += linear;
     m_angularVelocity += angular;
 }
 
+void RigidBody::separate(const math::Vec3& offset)
+{
+    math::Vec3 allowed = offset;
+    math::Vec3 ignored{};
+
+    applyConstraints(allowed, ignored);
+
+    m_position += allowed;
+}
+
 void RigidBody::advance(double dt)
 {
+    // whatever set the velocity, a frozen axis stops here
+    applyConstraints(m_velocity, m_angularVelocity);
+
     // semi-implicit euler, velocity of this step carries the body
     m_position += m_velocity * dt;
 

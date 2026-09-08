@@ -326,7 +326,8 @@ bool PhysicsWorld::sweep(const collision::Sweep& sweep, collision::SweepHit& out
 
 void PhysicsWorld::addBody(RigidBody* body, collision::collider::Collider* collider)
 {
-    if (!body)
+    // a body listed twice would be integrated twice
+    if (!body || std::find(m_bodies.begin(), m_bodies.end(), body) != m_bodies.end())
     {
         return;
     }

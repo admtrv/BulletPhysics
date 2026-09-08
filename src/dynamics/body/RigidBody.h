@@ -9,6 +9,7 @@
 #include "math/Vec3.h"
 
 #include <algorithm>
+#include <cstdint>
 
 namespace BulletPhysics {
 namespace dynamics {
@@ -29,6 +30,23 @@ enum class MotionType {
     Static        // never moves, holds everything else up
 };
 
+// axes the body is not allowed to move or turn along
+using Constraints = uint32_t;
+
+inline constexpr Constraints CONSTRAIN_NONE = 0;
+
+inline constexpr Constraints FREEZE_POSITION_X = 1u << 0;
+inline constexpr Constraints FREEZE_POSITION_Y = 1u << 1;
+inline constexpr Constraints FREEZE_POSITION_Z = 1u << 2;
+
+inline constexpr Constraints FREEZE_ROTATION_X = 1u << 3;
+inline constexpr Constraints FREEZE_ROTATION_Y = 1u << 4;
+inline constexpr Constraints FREEZE_ROTATION_Z = 1u << 5;
+
+inline constexpr Constraints FREEZE_POSITION = FREEZE_POSITION_X | FREEZE_POSITION_Y | FREEZE_POSITION_Z;
+inline constexpr Constraints FREEZE_ROTATION = FREEZE_ROTATION_X | FREEZE_ROTATION_Y | FREEZE_ROTATION_Z;
+inline constexpr Constraints FREEZE_ALL = FREEZE_POSITION | FREEZE_ROTATION;
+
 class RigidBody {
 public:
     RigidBody() = default;
@@ -41,6 +59,10 @@ public:
     bool isDynamic() const { return m_motionType == MotionType::Dynamic; }
     bool isKinematic() const { return m_motionType == MotionType::Kinematic; }
     bool isMovable() const { return m_motionType != MotionType::Static; }
+
+    // constraints
+    Constraints getConstraints() const { return m_constraints; }
+    void setConstraints(Constraints constraints) { m_constraints = constraints; }
 
     // mass
     double getMass() const { return m_mass; }
@@ -96,7 +118,7 @@ public:
     // never settle otherwise
     void applyImpulse(const math::Vec3& linear, const math::Vec3& angular);
     void advance(double dt);
-    void separate(const math::Vec3& offset) { m_position += offset; }
+    void separate(const math::Vec3& offset);
 
     // forces
     const math::Vec3& getAccumulatedForces() const { return m_forces; }
@@ -111,7 +133,11 @@ public:
 private:
     void updateInverseInertiaWorld();
 
+    // zeroes whatever the constraints forbid
+    void applyConstraints(math::Vec3& linear, math::Vec3& angular) const;
+
     MotionType m_motionType = MotionType::Dynamic;
+    Constraints m_constraints = CONSTRAIN_NONE;
 
     // mass
     double m_mass = DEFAULT_MASS;

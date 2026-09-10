@@ -2,7 +2,9 @@
     <img src="assets/images/BulletPhysics.png" alt="BulletPhysics Logo" width="350">
 </p>
 
-Small but complete C++ physics engine. It works as a standalone physics library that can be plugged into any project that needs simulation, this way it serves as a submodule of the game engine.
+Small but complete C++ physics engine. It works as a standalone physics library that can be plugged into any project that needs simulation, this way it serves as a submodule of the game engine [BulletEngine](https://github.com/admtrv/BulletEngine).
+
+Until now it grew on its own, in a vacuum, though always with the game engine in mind. From here it grows alongside it, driven by what the engine turns out to need.
 
 <p align="center">
     <img src="assets/images/Demo.gif" alt="Demo Simulation" width="500">

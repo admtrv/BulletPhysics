@@ -94,6 +94,7 @@ public:
 
     // surface
     const PhysicsMaterial& getMaterial() const { return m_material; }
+    PhysicsMaterial& getMaterial() { return m_material; }
     void setMaterial(const PhysicsMaterial& material) { m_material = material; }
 
     // trigger

@@ -5,6 +5,7 @@
 #pragma once
 
 #include "collision/Collision.h"
+#include "math/Vec3.h"
 
 #include <unordered_map>
 #include <unordered_set>
@@ -28,12 +29,23 @@ public:
 private:
     using Members = std::unordered_set<RigidBody*>;
 
+    // a static neighbour never joins an island, its pose is watched instead
+    struct Support {
+        const RigidBody* body = nullptr;
+        math::Vec3 position{};
+
+        bool operator==(const Support& other) const { return body == other.body && position == other.position; }
+    };
+
+    using Supports = std::vector<Support>;
+
     struct Island {
         Members bodies;
         double stillTime = 0.0;
     };
 
     int rootOf(int index);
+    Supports supportsOf(const Members& bodies, const std::vector<collision::Manifold>& contacts) const;
 
     std::vector<Island> m_islands;
 
@@ -47,6 +59,7 @@ private:
 
     // company of last step, a changed one means support was lost or gained
     std::unordered_map<const RigidBody*, Members> m_company;
+    std::unordered_map<const RigidBody*, Supports> m_supports;
 };
 
 } // namespace dynamics

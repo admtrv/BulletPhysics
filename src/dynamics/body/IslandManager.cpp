@@ -69,10 +69,12 @@ void IslandManager::build(const std::vector<RigidBody*>& bodies, const std::vect
     // an island carries on the stillness of the bodies it took in, and one whose
     // company changed starts over, the box it rested on may have just left
     std::unordered_map<const RigidBody*, Members> company;
+    std::unordered_map<const RigidBody*, Supports> supports;
 
     for (auto& island : m_islands)
     {
         double stillTime = SLEEP_DELAY;
+        const Supports resting = supportsOf(island.bodies, contacts);
 
         for (const RigidBody* body : island.bodies)
         {
@@ -80,13 +82,22 @@ void IslandManager::build(const std::vector<RigidBody*>& bodies, const std::vect
             stillTime = std::min(stillTime, (found != m_stillTime.end()) ? found->second : 0.0);
 
             company[body] = island.bodies;
+            supports[body] = resting;
         }
 
-        const auto previous = m_company.find(*island.bodies.begin());
-        island.stillTime = (previous != m_company.end() && previous->second == island.bodies) ? stillTime : 0.0;
+        const RigidBody* key = *island.bodies.begin();
+
+        const auto previousCompany = m_company.find(key);
+        const auto previousSupports = m_supports.find(key);
+
+        const bool sameCompany = previousCompany != m_company.end() && previousCompany->second == island.bodies;
+        const bool sameSupports = previousSupports != m_supports.end() && previousSupports->second == resting;
+
+        island.stillTime = (sameCompany && sameSupports) ? stillTime : 0.0;
     }
 
     m_company = std::move(company);
+    m_supports = std::move(supports);
 }
 
 void IslandManager::updateSleep(double dt)
@@ -149,6 +160,42 @@ int IslandManager::rootOf(int index)
     }
 
     return index;
+}
+
+// static bodies the island touches, with the pose they were touched at
+IslandManager::Supports IslandManager::supportsOf(const Members& bodies, const std::vector<collision::Manifold>& contacts) const
+{
+    Supports supports;
+
+    for (const auto& contact : contacts)
+    {
+        RigidBody* a = contact.colliderA->getBody();
+        RigidBody* b = contact.colliderB->getBody();
+
+        const RigidBody* outsider = nullptr;
+
+        if (bodies.count(a) != 0 && bodies.count(b) == 0)
+        {
+            outsider = b;
+        }
+        else if (bodies.count(b) != 0 && bodies.count(a) == 0)
+        {
+            outsider = a;
+        }
+
+        if (outsider)
+        {
+            supports.push_back({outsider, outsider->getPosition()});
+        }
+    }
+
+    // one entry per neighbour, order fixed so two steps compare
+    std::sort(supports.begin(), supports.end(), [](const Support& a, const Support& b) { return a.body < b.body; });
+    supports.erase(
+        std::unique(supports.begin(), supports.end(), [](const Support& a, const Support& b) { return a.body == b.body; }),
+        supports.end());
+
+    return supports;
 }
 
 } // namespace dynamics

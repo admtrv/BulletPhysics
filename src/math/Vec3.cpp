@@ -51,6 +51,11 @@ Vec3& Vec3::operator*=(double scalar)
     return *this;
 }
 
+bool Vec3::operator==(const Vec3& rhs) const
+{
+    return x == rhs.x && y == rhs.y && z == rhs.z;
+}
+
 Vec3 operator*(double scalar, const Vec3& vec)
 {
     return vec * scalar;

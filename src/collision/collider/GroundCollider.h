@@ -22,11 +22,12 @@ public:
 
     // position
     const math::Vec3& getPosition() const override { return m_position; }
-    void setPosition(const math::Vec3& pos) override;
+    void setPosition(const math::Vec3& pos) override;   // only the height is kept
+    bool isOrientable() const override { return false; }
 
     // ground y
     double getGroundY() const { return m_position.y; }
-    void setGroundY(double level);
+    void setGroundY(double level) { m_position.y = level; }
 
     // contact
     bool testCollision(const Collider& other, CollisionInfo& outInfo) const override;

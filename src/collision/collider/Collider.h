@@ -79,6 +79,7 @@ public:
 
     // orientation
     virtual void setOrientation(const math::Quat& orientation) {}
+    virtual bool isOrientable() const { return true; }   // a shape with no facing ignores rotation
 
     // contact
     virtual bool testCollision(const Collider& other, CollisionInfo& outInfo) const = 0;   // normal points from this collider to other

@@ -22,6 +22,9 @@ struct Vec3 {
     Vec3& operator-=(const Vec3& rhs);
     Vec3& operator*=(double scalar);
 
+    bool operator==(const Vec3& rhs) const;
+    bool operator!=(const Vec3& rhs) const { return !(*this == rhs); }
+
     double length() const;
     Vec3 normalized() const;
     double dot(const Vec3& rhs) const;

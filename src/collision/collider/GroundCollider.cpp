@@ -19,11 +19,6 @@ void GroundCollider::setPosition(const math::Vec3& pos)
     m_position.y = pos.y;
 }
 
-void GroundCollider::setGroundY(double level)
-{
-    m_position.y = level;
-}
-
 bool GroundCollider::testCollision(const Collider& other, CollisionInfo& outInfo) const
 {
     switch (other.getShape()) {

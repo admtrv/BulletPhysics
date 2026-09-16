@@ -41,6 +41,7 @@ public:
 
     // shape
     double boundingRadius() const override { return 1e30; }   // a plane has no bound
+    math::Mat3 inverseInertia(double) const override { return math::Mat3::zero(); }   // never turns
     math::Vec3 normalAt(const math::Vec3& point) const override { return {0.0, 1.0, 0.0}; }
 
 private:

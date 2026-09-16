@@ -6,6 +6,8 @@
 
 #include "Collider.h"
 
+#include "dynamics/body/Inertia.h"
+
 namespace BulletPhysics {
 namespace collision {
 namespace collider {
@@ -44,6 +46,7 @@ public:
 
     // shape
     double boundingRadius() const override { return m_radius; }
+    math::Mat3 inverseInertia(double mass) const override { return dynamics::inertia::sphere(mass, m_radius); }
     math::Vec3 normalAt(const math::Vec3& point) const override;
 
 private:

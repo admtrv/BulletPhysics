@@ -6,6 +6,7 @@
 
 #include "collision/PhysicsMaterial.h"
 #include "collision/Query.h"
+#include "math/Mat3.h"
 #include "math/Quat.h"
 #include "math/Vec3.h"
 
@@ -92,6 +93,9 @@ public:
     // shape
     virtual double boundingRadius() const = 0;
     virtual math::Vec3 normalAt(const math::Vec3& point) const = 0;
+
+    // how hard the shape is to spin, zero for one that never turns
+    virtual math::Mat3 inverseInertia(double mass) const = 0;
 
     // surface
     const PhysicsMaterial& getMaterial() const { return m_material; }

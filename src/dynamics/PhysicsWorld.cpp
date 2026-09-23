@@ -25,31 +25,48 @@ int PhysicsWorld::update(double frameTime)
 
 void PhysicsWorld::step(double dt)
 {
-    integrate(dt);
+    integrateForces(dt);
+    integratePoses(dt);
+    syncColliders();
+
     sweepFast(dt);
-    collide();
+
+    detectContacts();
+    solveVelocity();
+    solvePosition();
+
+    syncColliders();
+    reportContacts();
 
     // islands are rebuilt from this step contacts, a pile sleeps as one piece
     m_islands.build(m_bodies, m_manifolds);
     m_islands.updateSleep(dt);
 }
 
-void PhysicsWorld::integrate(double dt)
+void PhysicsWorld::integrateForces(double dt)
+{
+    for (RigidBody* body : m_bodies)
+    {
+        // kinematic bodies carry the velocity they were given, nothing acts on them
+        if (!body->isDynamic() || body->isSleeping())
+        {
+            continue;
+        }
+
+        const math::Vec3 acceleration = m_gravity + body->getAccumulatedForces() * body->getInverseMass();
+        const math::Vec3 angularAcceleration = body->getInverseInertia() * body->getAccumulatedTorque();
+
+        body->applyImpulse(acceleration * dt, angularAcceleration * dt);
+    }
+}
+
+void PhysicsWorld::integratePoses(double dt)
 {
     for (RigidBody* body : m_bodies)
     {
         if (!body->isMovable() || body->isSleeping())
         {
             continue;
-        }
-
-        // kinematic bodies carry the velocity they were given, nothing acts on them
-        if (body->isDynamic())
-        {
-            const math::Vec3 acceleration = m_gravity + body->getAccumulatedForces() * body->getInverseMass();
-            const math::Vec3 angularAcceleration = body->getInverseInertia() * body->getAccumulatedTorque();
-
-            body->applyImpulse(acceleration * dt, angularAcceleration * dt);
         }
 
         body->advance(dt);
@@ -61,8 +78,6 @@ void PhysicsWorld::integrate(double dt)
 
         body->clearForces();
     }
-
-    syncColliders();
 }
 
 void PhysicsWorld::sweepFast(double dt)
@@ -105,15 +120,18 @@ void PhysicsWorld::sweepFast(double dt)
     }
 }
 
-void PhysicsWorld::collide()
+void PhysicsWorld::detectContacts()
 {
-    std::vector<collision::Manifold> previous;
-    previous.swap(m_manifolds);
+    // detect fills manifolds anew, so whatever stood there becomes last step
+    m_previous.swap(m_manifolds);
 
     m_collision.detect(m_manifolds);
 
-    carryImpulses(previous);
+    carryImpulses();
+}
 
+void PhysicsWorld::solveVelocity()
+{
     m_solver.prepare(m_manifolds);
     m_solver.warmStart(m_manifolds);
 
@@ -125,15 +143,14 @@ void PhysicsWorld::collide()
             m_solver.solveVelocity(manifold);
         }
     }
+}
 
+void PhysicsWorld::solvePosition()
+{
     for (const auto& manifold : m_manifolds)
     {
         m_solver.correctPosition(manifold);
     }
-
-    syncColliders();
-
-    reportContacts(previous);
 }
 
 // helpers
@@ -144,7 +161,7 @@ static bool samePair(const collision::Manifold& a, const collision::Manifold& b)
     return a.colliderA == b.colliderA && a.colliderB == b.colliderB;
 }
 
-void PhysicsWorld::reportContacts(const std::vector<collision::Manifold>& previous) const
+void PhysicsWorld::reportContacts() const
 {
     if (!m_listener)
     {
@@ -153,7 +170,7 @@ void PhysicsWorld::reportContacts(const std::vector<collision::Manifold>& previo
 
     for (const auto& manifold : m_manifolds)
     {
-        const bool known = std::any_of(previous.begin(), previous.end(), [&manifold](const auto& old) {
+        const bool known = std::any_of(m_previous.begin(), m_previous.end(), [&manifold](const auto& old) {
             return samePair(old, manifold);
         });
 
@@ -167,7 +184,7 @@ void PhysicsWorld::reportContacts(const std::vector<collision::Manifold>& previo
         }
     }
 
-    for (const auto& old : previous)
+    for (const auto& old : m_previous)
     {
         const bool alive = std::any_of(m_manifolds.begin(), m_manifolds.end(), [&old](const auto& manifold) {
             return samePair(old, manifold);
@@ -194,15 +211,15 @@ void PhysicsWorld::syncColliders()
     }
 }
 
-void PhysicsWorld::carryImpulses(const std::vector<collision::Manifold>& previous)
+void PhysicsWorld::carryImpulses()
 {
     for (auto& manifold : m_manifolds)
     {
-        const auto match = std::find_if(previous.begin(), previous.end(), [&manifold](const auto& old) {
+        const auto match = std::find_if(m_previous.begin(), m_previous.end(), [&manifold](const auto& old) {
             return old.colliderA == manifold.colliderA && old.colliderB == manifold.colliderB;
         });
 
-        if (match == previous.end())
+        if (match == m_previous.end())
         {
             continue;
         }

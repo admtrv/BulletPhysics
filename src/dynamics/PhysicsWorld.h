@@ -62,16 +62,18 @@ public:
     size_t getBodyCount() const { return m_bodies.size(); }
 
 private:
-    // step phases
-    void integrate(double dt);
+    // step phases, in the order step runs them
+    void integrateForces(double dt);
+    void integratePoses(double dt);
+    void syncColliders();
     void sweepFast(double dt);
-    void collide();
+    void detectContacts();
+    void solveVelocity();
+    void solvePosition();
 
     // helpers
-    void carryImpulses(const std::vector<collision::Manifold>& previous);
-    void reportContacts(const std::vector<collision::Manifold>& previous) const;
-
-    void syncColliders();
+    void carryImpulses();
+    void reportContacts() const;
 
     // contents
     std::vector<RigidBody*> m_bodies;
@@ -90,6 +92,7 @@ private:
     ContactSolver m_solver;
     IslandManager m_islands;
     std::vector<collision::Manifold> m_manifolds;
+    std::vector<collision::Manifold> m_previous;    // last step contacts, matched against for impulses and events
 };
 
 } // namespace dynamics

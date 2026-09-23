@@ -5,6 +5,7 @@
 #include "SphereCollider.h"
 
 #include "BoxCollider.h"
+#include "CylinderCollider.h"
 #include "GroundCollider.h"
 
 #include <algorithm>
@@ -29,6 +30,18 @@ bool SphereCollider::testCollision(const Collider& other, CollisionInfo& outInfo
 
         case CollisionShape::Box:
             return testCollisionWithBox(static_cast<const BoxCollider&>(other), outInfo);
+
+        case CollisionShape::Cylinder:
+        {
+            // cylinder does the test, flip normal to point away from us
+            if (!static_cast<const CylinderCollider&>(other).testCollisionWithSphere(*this, outInfo))
+            {
+                return false;
+            }
+
+            outInfo.normal = outInfo.normal * -1.0;
+            return true;
+        }
 
         case CollisionShape::Ground:
             return testCollisionWithGround(static_cast<const GroundCollider&>(other), outInfo);

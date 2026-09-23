@@ -11,6 +11,7 @@
 #include "dynamics/contact/ContactSolver.h"
 #include "dynamics/PhysicsTimer.h"
 
+#include <unordered_set>
 #include <vector>
 
 namespace BulletPhysics {
@@ -30,6 +31,10 @@ public:
     // contents, not owned
     void addBody(RigidBody* body, collision::collider::Collider* collider = nullptr);   // no collider means no contacts
     void removeBody(RigidBody* body);
+
+    // a shape without a body stands still and is only collided against
+    void addCollider(collision::collider::Collider* collider);
+    void removeCollider(collision::collider::Collider* collider);
 
     void clear();
 
@@ -71,6 +76,7 @@ private:
     // contents
     std::vector<RigidBody*> m_bodies;
     std::vector<collision::collider::Collider*> m_colliders;
+    std::unordered_set<const collision::collider::Collider*> m_listed;      // same set, for asking whether one is already in
 
     // parameters
     math::Vec3 m_gravity = DEFAULT_GRAVITY;

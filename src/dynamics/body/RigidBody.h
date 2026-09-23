@@ -64,6 +64,13 @@ public:
     Constraints getConstraints() const { return m_constraints; }
     void setConstraints(Constraints constraints) { m_constraints = constraints; }
 
+    // degrees of freedom left to it, a still body has none whatever it was told
+    bool canMoveAlong(int axis) const
+    {
+        static constexpr Constraints FROZEN[3] = {FREEZE_POSITION_X, FREEZE_POSITION_Y, FREEZE_POSITION_Z};
+        return isMovable() && (m_constraints & FROZEN[axis]) == 0;
+    }
+
     // mass
     double getMass() const { return m_mass; }
     double getInverseMass() const { return m_inverseMass; }

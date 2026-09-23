@@ -8,6 +8,8 @@
 
 #include "dynamics/body/Inertia.h"
 
+#include <algorithm>
+
 namespace BulletPhysics {
 namespace collision {
 namespace collider {
@@ -48,6 +50,7 @@ public:
 
     // shape
     double boundingRadius() const override { return m_size.length() * 0.5; }   // half the diagonal
+    double thinnestExtent() const override { return std::min({m_size.x, m_size.y, m_size.z}) * 0.5; }
     math::Mat3 inverseInertia(double mass) const override { return dynamics::inertia::box(mass, m_size); }
     math::Vec3 normalAt(const math::Vec3& point) const override;
 

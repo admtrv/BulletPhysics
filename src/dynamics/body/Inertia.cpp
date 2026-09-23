@@ -38,6 +38,21 @@ math::Mat3 sphere(double mass, double radius)
     return math::Mat3::diagonal(inverse, inverse, inverse);
 }
 
+// solid cylinder: I = m/12 * (3r^2 + h^2) across axis, m/2 * r^2 along it
+math::Mat3 cylinder(double mass, double radius, double height)
+{
+    if (mass <= 0.0 || radius <= 0.0)
+    {
+        return math::Mat3::zero();
+    }
+
+    const double r2 = radius * radius;
+    const double across = mass * (3.0 * r2 + height * height) / 12.0;
+    const double along = mass * r2 * 0.5;
+
+    return math::Mat3::diagonal(1.0 / across, 1.0 / along, 1.0 / across);
+}
+
 } // namespace inertia
 } // namespace dynamics
 } // namespace BulletPhysics

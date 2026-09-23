@@ -71,7 +71,7 @@ void PhysicsWorld::sweepFast(double dt)
     {
         RigidBody* body = collider->getBody();
 
-        if (!body->isContinuous() || !body->isMovable() || body->isSleeping())
+        if (!body || !body->isContinuous() || !body->isMovable() || body->isSleeping())
         {
             continue;
         }
@@ -81,8 +81,8 @@ void PhysicsWorld::sweepFast(double dt)
 
         const double radius = collider->boundingRadius();
 
-        // a step shorter than the shape cannot skip anything, the usual test sees it
-        if (distance < radius)
+        // a step shorter than the narrowest way through cannot skip anything, the usual test sees it
+        if (distance < collider->thinnestExtent())
         {
             continue;
         }
@@ -184,8 +184,13 @@ void PhysicsWorld::syncColliders()
 {
     for (auto* collider : m_colliders)
     {
-        collider->setPosition(collider->getBody()->getPosition());
-        collider->setOrientation(collider->getBody()->getOrientation());
+        const RigidBody* body = collider->getBody();
+
+        // one without a body stands where it was put, nothing carries it
+        if (body)
+        {
+            collider->place(body->getPosition(), body->getOrientation());
+        }
     }
 }
 
@@ -341,8 +346,31 @@ void PhysicsWorld::addBody(RigidBody* body, collision::collider::Collider* colli
         collider->setOrientation(body->getOrientation());
 
         m_colliders.push_back(collider);
+        m_listed.insert(collider);
         m_collision.addCollider(collider);
     }
+}
+
+void PhysicsWorld::addCollider(collision::collider::Collider* collider)
+{
+    if (!collider || !m_listed.insert(collider).second)
+    {
+        return;
+    }
+
+    m_colliders.push_back(collider);
+    m_collision.addCollider(collider);
+}
+
+void PhysicsWorld::removeCollider(collision::collider::Collider* collider)
+{
+    if (m_listed.erase(collider) == 0)
+    {
+        return;
+    }
+
+    m_collision.removeCollider(collider);
+    m_colliders.erase(std::find(m_colliders.begin(), m_colliders.end(), collider));
 }
 
 void PhysicsWorld::removeBody(RigidBody* body)
@@ -363,6 +391,7 @@ void PhysicsWorld::removeBody(RigidBody* body)
         }
 
         m_collision.removeCollider(collider);
+        m_listed.erase(collider);
         collider->setBody(nullptr);
 
         return true;
@@ -380,6 +409,7 @@ void PhysicsWorld::clear()
 
     m_bodies.clear();
     m_colliders.clear();
+    m_listed.clear();
     m_collision.clear();
     m_manifolds.clear();
 }

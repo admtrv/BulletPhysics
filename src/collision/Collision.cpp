@@ -4,6 +4,8 @@
 
 #include "Collision.h"
 
+#include "dynamics/body/RigidBody.h"
+
 #include <algorithm>
 
 namespace BulletPhysics {
@@ -33,6 +35,18 @@ void Collision::clear()
     m_colliders.clear();
 }
 
+// a pair parts along an axis as long as either side is still free to go there
+static void fillFreedom(const Collider& a, const Collider& b, CollisionInfo& info)
+{
+    const dynamics::RigidBody* first = a.getBody();
+    const dynamics::RigidBody* second = b.getBody();
+
+    for (int axis = 0; axis < 3; axis++)
+    {
+        info.freedom[axis] = (first && first->canMoveAlong(axis)) || (second && second->canMoveAlong(axis));
+    }
+}
+
 void Collision::detect(std::vector<Manifold>& manifolds)
 {
     manifolds.clear();
@@ -50,6 +64,8 @@ void Collision::detect(std::vector<Manifold>& manifolds)
             }
 
             CollisionInfo info;
+            fillFreedom(*a, *b, info);
+
             if (a->testCollision(*b, info))
             {
                 manifolds.push_back({a, b, info});

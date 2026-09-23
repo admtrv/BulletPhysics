@@ -5,6 +5,7 @@
 #include "BoxCollider.h"
 #include "GroundCollider.h"
 #include "SphereCollider.h"
+#include "CylinderCollider.h"
 
 #include <algorithm>
 
@@ -45,6 +46,16 @@ bool BoxCollider::testCollision(const Collider& other, CollisionInfo& outInfo) c
         case CollisionShape::Sphere: {
             // sphere does the test, flip normal to point away from us
             if (!static_cast<const SphereCollider&>(other).testCollisionWithBox(*this, outInfo))
+            {
+                return false;
+            }
+
+            outInfo.normal = outInfo.normal * -1.0;
+            return true;
+        }
+        case CollisionShape::Cylinder: {
+            // cylinder does the test, flip normal to point away from us
+            if (!static_cast<const CylinderCollider&>(other).testCollisionWithBox(*this, outInfo))
             {
                 return false;
             }
@@ -117,11 +128,17 @@ bool BoxCollider::testCollisionWithBox(const BoxCollider& other, CollisionInfo& 
         }
 
         const double overlap = reach - distance;
-        if (overlap < leastOverlap)
+        if (overlap < leastOverlap && outInfo.allows(axis))
         {
             leastOverlap = overlap;
             leastAxis = axis;
         }
+    }
+
+    // every way out was frozen, so there is nothing to answer with
+    if (leastOverlap > 1e29)
+    {
+        return false;
     }
 
     // point the axis from this box towards the other one

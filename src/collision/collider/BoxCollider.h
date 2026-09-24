@@ -34,7 +34,7 @@ public:
     const math::Vec3& getSize() const { return m_size; }
     void setSize(const math::Vec3& size) { m_size = size; }
 
-    // orientation as 3x3 rotation matrix (column vectors: x, y, z axes)
+    // orientation as rotation matrix, columns are x, y, z axes
     void setAxes(const math::Vec3& axisX, const math::Vec3& axisY, const math::Vec3& axisZ);
     const math::Vec3* getAxes() const { return m_axes; }
 
@@ -49,7 +49,7 @@ public:
     double thickness(const Ray& ray) const override;
 
     // shape
-    double boundingRadius() const override { return m_size.length() * 0.5; }   // half the diagonal
+    double boundingRadius() const override { return m_size.length() * 0.5; }   // half of diagonal
     double thinnestExtent() const override { return std::min({m_size.x, m_size.y, m_size.z}) * 0.5; }
     math::Mat3 inverseInertia(double mass) const override { return dynamics::inertia::box(mass, m_size); }
     math::Vec3 normalAt(const math::Vec3& point) const override;

@@ -4,6 +4,8 @@
 
 #include "Mat3.h"
 
+#include <cmath>
+
 namespace BulletPhysics {
 namespace math {
 
@@ -19,6 +21,11 @@ Mat3 Mat3::diagonal(double x, double y, double z)
 Mat3 Mat3::zero()
 {
     return {{0.0, 0.0, 0.0}, {0.0, 0.0, 0.0}, {0.0, 0.0, 0.0}};
+}
+
+Mat3 Mat3::operator+(const Mat3& rhs) const
+{
+    return {rows[0] + rhs.rows[0], rows[1] + rhs.rows[1], rows[2] + rhs.rows[2]};
 }
 
 Mat3 Mat3::operator*(const Mat3& rhs) const
@@ -40,6 +47,27 @@ Vec3 Mat3::operator*(const Vec3& v) const
 Mat3 Mat3::operator*(double scalar) const
 {
     return {rows[0] * scalar, rows[1] * scalar, rows[2] * scalar};
+}
+
+// adjugate over determinant, cofactors come from cross products of rows
+Mat3 Mat3::inverted() const
+{
+    const Vec3 first = rows[1].cross(rows[2]);
+    const Vec3 second = rows[2].cross(rows[0]);
+    const Vec3 third = rows[0].cross(rows[1]);
+
+    const double det = rows[0].dot(first);
+
+    if (std::abs(det) < 1e-12)
+    {
+        return zero();
+    }
+
+    const double scale = 1.0 / det;
+
+    return Mat3{{first.x, second.x, third.x},
+                {first.y, second.y, third.y},
+                {first.z, second.z, third.z}} * scale;
 }
 
 Mat3 Mat3::transposed() const

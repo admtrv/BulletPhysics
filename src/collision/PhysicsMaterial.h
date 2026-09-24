@@ -10,7 +10,7 @@
 namespace BulletPhysics {
 namespace collision {
 
-// surface response of a collider
+// surface response of collider
 struct PhysicsMaterial {
     double friction = 0.5;      // coulomb coefficient, 0 slides freely
     double restitution = 0.0;   // bounciness, 1 keeps all speed

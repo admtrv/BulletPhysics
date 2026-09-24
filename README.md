@@ -13,8 +13,9 @@ Until now it grew on its own, in a vacuum, though always with the game engine in
 ## Features
 
 - **Bodies** carry mass and inertia tensor, come as dynamic, kinematic or static, take forces and torques
+- **6DOF** carried through the whole solver, so every body moves and turns as freely as it is allowed to
 - **Constraints** freeze position or rotation along chosen axes
-- **Colliders** of box, sphere and infinite ground, each holds a material, a layer and a mask
+- **Colliders** of box, sphere, cylinder and infinite ground, each holds a material, a layer and a mask
 - **Materials** define friction and restitution
 - **Islands** group bodies that touch and put them to sleep together
 - **Timer** runs the simulation on a fixed step

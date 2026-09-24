@@ -25,6 +25,9 @@ struct Vec3 {
     bool operator==(const Vec3& rhs) const;
     bool operator!=(const Vec3& rhs) const { return !(*this == rhs); }
 
+    double& operator[](int axis);
+    double operator[](int axis) const;
+
     double length() const;
     Vec3 normalized() const;
     double dot(const Vec3& rhs) const;

@@ -61,6 +61,16 @@ Vec3 operator*(double scalar, const Vec3& vec)
     return vec * scalar;
 }
 
+double& Vec3::operator[](int axis)
+{
+    return axis == 0 ? x : (axis == 1 ? y : z);
+}
+
+double Vec3::operator[](int axis) const
+{
+    return axis == 0 ? x : (axis == 1 ? y : z);
+}
+
 double Vec3::length() const
 {
     return std::sqrt(x * x + y * y + z * z);

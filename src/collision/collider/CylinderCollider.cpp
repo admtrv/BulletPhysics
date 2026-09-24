@@ -16,7 +16,7 @@ namespace collision {
 namespace collider {
 
 constexpr double EPSILON = 1e-9;
-constexpr int RIM_POINTS = 4;       // enough to keep a resting cap from rocking
+constexpr int RIM_POINTS = 4;       // enough to keep resting cap from rocking
 
 CylinderCollider::CylinderCollider(double radius, double height)
     : m_radius(radius > 0.0 ? radius : 0.5), m_height(height > 0.0 ? height : 1.0) {}
@@ -73,7 +73,7 @@ bool CylinderCollider::testCollisionWithSphere(const SphereCollider& sphere, Col
     math::Vec3 diff = centre - closest;
     double distance = diff.length();
 
-    // centre inside the solid, push it out the cheapest way
+    // centre inside solid, push it out cheapest way
     if (distance < EPSILON)
     {
         const math::Vec3 local = centre - m_position;
@@ -87,13 +87,11 @@ bool CylinderCollider::testCollisionWithSphere(const SphereCollider& sphere, Col
 
         if (toCap < toSide)
         {
-            outInfo.normal = m_axis * (along >= 0.0 ? 1.0 : -1.0);
-            outInfo.penetration = toCap + sphere.getRadius();
+            outInfo.setContact(m_axis * (along >= 0.0 ? 1.0 : -1.0), toCap + sphere.getRadius());
         }
         else
         {
-            outInfo.normal = radialLength > EPSILON ? radial * (1.0 / radialLength) : math::Vec3{1.0, 0.0, 0.0};
-            outInfo.penetration = toSide + sphere.getRadius();
+            outInfo.setContact(radialLength > EPSILON ? radial * (1.0 / radialLength) : math::Vec3{1.0, 0.0, 0.0}, toSide + sphere.getRadius());
         }
 
         outInfo.pointCount = 0;
@@ -107,8 +105,7 @@ bool CylinderCollider::testCollisionWithSphere(const SphereCollider& sphere, Col
         return false;
     }
 
-    outInfo.normal = diff * (1.0 / distance);
-    outInfo.penetration = sphere.getRadius() - distance;
+    outInfo.setContact(diff * (1.0 / distance), sphere.getRadius() - distance);
 
     outInfo.pointCount = 0;
     outInfo.addPoint(closest, 0);
@@ -123,7 +120,7 @@ bool CylinderCollider::testCollisionWithGround(const GroundCollider& ground, Col
     const double groundY = ground.getGroundY();
     const double half = m_height * 0.5;
 
-    // lowest reach is the cap centre dropped by however much the rim tilts below it
+    // lowest reach is cap centre dropped by however much rim tilts below it
     const double tilt = m_axis.dot(UP);
     const math::Vec3 radial = UP - m_axis * tilt;
     const double spread = radial.length() * m_radius;
@@ -136,14 +133,13 @@ bool CylinderCollider::testCollisionWithGround(const GroundCollider& ground, Col
     }
 
     // cylinder is first collider, normal points down into ground
-    outInfo.normal = math::Vec3{0.0, -1.0, 0.0};
-    outInfo.penetration = groundY - lowest;
+    outInfo.setContact(math::Vec3{0.0, -1.0, 0.0}, groundY - lowest);
     outInfo.pointCount = 0;
 
     const double side = tilt >= 0.0 ? -1.0 : 1.0;
     const math::Vec3 capCentre = m_position + m_axis * (side * half);
 
-    // a cap lying flat rests on its whole rim, anything else touches at one spot
+    // cap lying flat rests on its whole rim, anything else touches at one spot
     if (std::abs(tilt) > 1.0 - EPSILON)
     {
         math::Vec3 first = m_axis.cross({1.0, 0.0, 0.0});
@@ -178,7 +174,7 @@ bool CylinderCollider::testCollisionWithBox(const BoxCollider& box, CollisionInf
     const math::Vec3 half = box.getSize() * 0.5;
     const math::Vec3* axes = box.getAxes();
 
-    // box face normals and the cylinder axis, plus where the two sets meet edge on
+    // box face normals and cylinder axis, plus where two sets meet edge on
     math::Vec3 candidates[8];
     int count = 0;
 
@@ -201,9 +197,6 @@ bool CylinderCollider::testCollisionWithBox(const BoxCollider& box, CollisionInf
 
     const math::Vec3 diff = box.getPosition() - m_position;
 
-    double leastOverlap = 1e30;
-    math::Vec3 leastAxis{};
-
     for (int i = 0; i < count; i++)
     {
         const math::Vec3& axis = candidates[i];
@@ -212,7 +205,7 @@ bool CylinderCollider::testCollisionWithBox(const BoxCollider& box, CollisionInf
                               + std::abs(axis.dot(axes[1])) * half.y
                               + std::abs(axis.dot(axes[2])) * half.z;
 
-        // cylinder spans its half height along the axis and its radius across
+        // cylinder spans half height along axis, radius across
         const double along = axis.dot(m_axis);
         const double ownReach = std::abs(along) * m_height * 0.5 + std::sqrt(std::max(0.0, 1.0 - along * along)) * m_radius;
 
@@ -223,21 +216,8 @@ bool CylinderCollider::testCollisionWithBox(const BoxCollider& box, CollisionInf
             return false;
         }
 
-        if (-gap < leastOverlap && outInfo.allows(axis))
-        {
-            leastOverlap = -gap;
-            leastAxis = diff.dot(axis) >= 0.0 ? axis : axis * -1.0;
-        }
+        outInfo.offerAxis(axis, -gap, diff);
     }
-
-    // every way out was frozen, so there is nothing to answer with
-    if (leastOverlap > 1e29)
-    {
-        return false;
-    }
-
-    outInfo.normal = leastAxis;
-    outInfo.penetration = leastOverlap;
 
     outInfo.pointCount = 0;
     outInfo.addPoint(closestPoint(box.getPosition()), 0);
@@ -263,7 +243,7 @@ bool CylinderCollider::testCollisionWithCylinder(const CylinderCollider& cylinde
     }
     else if (diff.length() > EPSILON)
     {
-        // axes are parallel, the line between centres tells them apart sideways
+        // axes parallel, line between centres tells them apart sideways
         const math::Vec3 radial = diff - m_axis * diff.dot(m_axis);
 
         if (radial.length() > EPSILON)
@@ -271,9 +251,6 @@ bool CylinderCollider::testCollisionWithCylinder(const CylinderCollider& cylinde
             candidates[count++] = radial.normalized();
         }
     }
-
-    double leastOverlap = 1e30;
-    math::Vec3 leastAxis{};
 
     for (int i = 0; i < count; i++)
     {
@@ -292,20 +269,8 @@ bool CylinderCollider::testCollisionWithCylinder(const CylinderCollider& cylinde
             return false;
         }
 
-        if (-gap < leastOverlap && outInfo.allows(axis))
-        {
-            leastOverlap = -gap;
-            leastAxis = diff.dot(axis) >= 0.0 ? axis : axis * -1.0;
-        }
+        outInfo.offerAxis(axis, -gap, diff);
     }
-
-    if (leastOverlap > 1e29)
-    {
-        return false;
-    }
-
-    outInfo.normal = leastAxis;
-    outInfo.penetration = leastOverlap;
 
     outInfo.pointCount = 0;
     outInfo.addPoint(closestPoint(cylinder.m_position), 0);
@@ -341,7 +306,7 @@ bool CylinderCollider::sweep(const Sweep& sweep, double& outDistance) const
     double entry = 0.0;
     double exit = 0.0;
 
-    // a swept sphere becomes a point once the solid grows by its radius
+    // swept sphere becomes point once solid grows by its radius
     if (!span(sweep.origin, sweep.direction, m_radius + sweep.radius, m_height * 0.5 + sweep.radius, entry, exit))
     {
         return false;
@@ -379,7 +344,7 @@ math::Vec3 CylinderCollider::normalAt(const math::Vec3& point) const
     const math::Vec3 radial = local - m_axis * along;
     const double radialLength = radial.length();
 
-    // a point past the cap belongs to it, one beside the body belongs to the side
+    // point past cap belongs to it, one beside body belongs to side
     if (std::abs(along) >= m_height * 0.5 - EPSILON)
     {
         return m_axis * (along >= 0.0 ? 1.0 : -1.0);
@@ -410,7 +375,7 @@ math::Vec3 CylinderCollider::closestPoint(const math::Vec3& point) const
 
 // helpers
 
-// where a line enters and leaves the solid, caps and side each cut it in turn
+// where line enters and leaves solid, caps and side each cut it in turn
 bool CylinderCollider::span(const math::Vec3& origin, const math::Vec3& direction, double radius, double halfHeight, double& outEntry, double& outExit) const
 {
     const math::Vec3 local = origin - m_position;
@@ -418,7 +383,7 @@ bool CylinderCollider::span(const math::Vec3& origin, const math::Vec3& directio
     double entry = -1e30;
     double exit = 1e30;
 
-    // caps, a pair of parallel planes across the axis
+    // caps, pair of parallel planes across axis
     const double alongDir = direction.dot(m_axis);
     const double alongOrigin = local.dot(m_axis);
 
@@ -443,7 +408,7 @@ bool CylinderCollider::span(const math::Vec3& origin, const math::Vec3& directio
         exit = std::min(exit, far);
     }
 
-    // side, a circle once both are flattened onto the plane across the axis
+    // side, circle once both flattened onto plane across axis
     const math::Vec3 flatDir = direction - m_axis * alongDir;
     const math::Vec3 flatOrigin = local - m_axis * alongOrigin;
 

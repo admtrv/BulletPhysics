@@ -13,10 +13,10 @@ namespace BulletPhysics {
 namespace collision {
 namespace collider {
 
-static constexpr double CONTACT_MARGIN = 0.01;   // corners just above surface still count, else the box rocks
-static constexpr double REST_TOLERANCE = 0.02;   // share of the box a resting face may be tilted by
+static constexpr double CONTACT_MARGIN = 0.01;   // corners just above surface still count, else box rocks
+static constexpr double REST_TOLERANCE = 0.02;   // tilt allowed on resting face, as share of box
 
-static constexpr int MAX_CLIP_POINTS = 8;        // a face cut by four planes cannot give more
+static constexpr int MAX_CLIP_POINTS = 8;        // face cut by four planes cannot give more
 static constexpr int FEATURE_CLAMPED = 16;       // clamped point, no corner behind it
 
 BoxCollider::BoxCollider(const math::Vec3& size) : m_size(size) {}
@@ -44,23 +44,23 @@ bool BoxCollider::testCollision(const Collider& other, CollisionInfo& outInfo) c
             return testCollisionWithBox(static_cast<const BoxCollider&>(other), outInfo);
         }
         case CollisionShape::Sphere: {
-            // sphere does the test, flip normal to point away from us
+            // sphere does test, flip normal to point away from us
             if (!static_cast<const SphereCollider&>(other).testCollisionWithBox(*this, outInfo))
             {
                 return false;
             }
 
-            outInfo.normal = outInfo.normal * -1.0;
+            outInfo.reverse();
             return true;
         }
         case CollisionShape::Cylinder: {
-            // cylinder does the test, flip normal to point away from us
+            // cylinder does test, flip normal to point away from us
             if (!static_cast<const CylinderCollider&>(other).testCollisionWithBox(*this, outInfo))
             {
                 return false;
             }
 
-            outInfo.normal = outInfo.normal * -1.0;
+            outInfo.reverse();
             return true;
         }
         case CollisionShape::Ground: {
@@ -71,7 +71,7 @@ bool BoxCollider::testCollision(const Collider& other, CollisionInfo& outInfo) c
     }
 }
 
-// half width of the box measured along an arbitrary direction
+// half width of box measured along arbitrary direction
 static double projectedRadius(const math::Vec3& half, const math::Vec3* axes, const math::Vec3& direction)
 {
     return std::abs(direction.dot(axes[0])) * half.x
@@ -86,7 +86,7 @@ bool BoxCollider::testCollisionWithBox(const BoxCollider& other, CollisionInfo& 
 
     const math::Vec3 diff = other.m_position - m_position;
 
-    // separating axis theorem, a gap on any axis means no contact
+    // separating axis theorem, gap on any axis means no contact
     math::Vec3 axes[15];
     int axisCount = 0;
 
@@ -102,7 +102,7 @@ bool BoxCollider::testCollisionWithBox(const BoxCollider& other, CollisionInfo& 
     {
         for (int j = 0; j < 3; j++)
         {
-            // parallel edges give a degenerate axis, their face normals cover it
+            // parallel edges give degenerate axis, their face normals cover it
             const math::Vec3 axis = m_axes[i].cross(other.m_axes[j]).normalized();
 
             if (axis.length() > 0.5)
@@ -111,9 +111,6 @@ bool BoxCollider::testCollisionWithBox(const BoxCollider& other, CollisionInfo& 
             }
         }
     }
-
-    double leastOverlap = 1e30;
-    math::Vec3 leastAxis{};
 
     for (int i = 0; i < axisCount; i++)
     {
@@ -127,30 +124,15 @@ bool BoxCollider::testCollisionWithBox(const BoxCollider& other, CollisionInfo& 
             return false;
         }
 
-        const double overlap = reach - distance;
-        if (overlap < leastOverlap && outInfo.allows(axis))
-        {
-            leastOverlap = overlap;
-            leastAxis = axis;
-        }
+        outInfo.offerAxis(axis, reach - distance, diff);
     }
 
-    // every way out was frozen, so there is nothing to answer with
-    if (leastOverlap > 1e29)
-    {
-        return false;
-    }
-
-    // point the axis from this box towards the other one
-    outInfo.normal = (diff.dot(leastAxis) < 0.0) ? leastAxis * -1.0 : leastAxis;
-    outInfo.penetration = leastOverlap;
-
-    // face against face gives a whole polygon, which is what holds a stack up
+    // face against face gives whole polygon, which is what holds stack up
     outInfo.pointCount = 0;
 
     clipFace(other, outInfo.normal, outInfo);
 
-    // edge crossing an edge leaves no face to clip, fall back to the deepest corner
+    // edge crossing edge leaves no face to clip, fall back to deepest corner
     if (outInfo.pointCount == 0)
     {
         math::Vec3 deepest = other.m_position;
@@ -179,7 +161,7 @@ bool BoxCollider::testCollisionWithBox(const BoxCollider& other, CollisionInfo& 
     return true;
 }
 
-// the face most square to the normal, the one that actually rests on the contact
+// face most square to normal, one that actually rests on contact
 int BoxCollider::faceAxis(const math::Vec3& normal, double& outSide) const
 {
     int best = 0;
@@ -224,7 +206,7 @@ void BoxCollider::faceCorners(int axis, double side, math::Vec3 outCorners[4]) c
     outCorners[3] = centre - uEdge + vEdge;
 }
 
-// sutherland-hodgman, keeps what lies inside the plane and cuts the edges crossing it
+// sutherland-hodgman, keeps what lies inside plane and cuts edges crossing it
 static int clipAgainstPlane(const math::Vec3* input, int count, const math::Vec3& planeNormal, double planeOffset,
                             math::Vec3* output)
 {
@@ -257,13 +239,13 @@ static int clipAgainstPlane(const math::Vec3* input, int count, const math::Vec3
     return result;
 }
 
-// two faces overlap in a polygon, corners alone miss it when neither box has one inside
+// two faces overlap in polygon, corners alone miss it when neither box has one inside
 void BoxCollider::clipFace(const BoxCollider& other, const math::Vec3& normal, CollisionInfo& outInfo) const
 {
     double referenceSide = 0.0;
     const int referenceAxis = faceAxis(normal, referenceSide);
 
-    // the incident face looks back at the contact, hence the flipped normal
+    // incident face looks back at contact, hence flipped normal
     double incidentSide = 0.0;
     const int incidentAxis = other.faceAxis(normal * -1.0, incidentSide);
 
@@ -275,7 +257,7 @@ void BoxCollider::clipFace(const BoxCollider& other, const math::Vec3& normal, C
 
     const math::Vec3 half = m_size * 0.5;
 
-    // cut against the four sides of the reference face
+    // cut against four sides of reference face
     for (int i = 0; i < 3 && count > 0; i++)
     {
         if (i == referenceAxis)
@@ -290,7 +272,7 @@ void BoxCollider::clipFace(const BoxCollider& other, const math::Vec3& normal, C
         count = clipAgainstPlane(clipped, count, m_axes[i] * -1.0, -(centre - extent), polygon);
     }
 
-    // keep what sits at the contact plane, the rest belongs to the far side
+    // keep what sits at contact plane, rest belongs to far side
     const double referenceExtent = (referenceAxis == 0) ? half.x : (referenceAxis == 1) ? half.y : half.z;
     const double surface = m_position.dot(normal) + referenceExtent * referenceSide * m_axes[referenceAxis].dot(normal);
 
@@ -308,7 +290,7 @@ void BoxCollider::clipFace(const BoxCollider& other, const math::Vec3& normal, C
     reducePoints(touching, touchingCount, outInfo);
 }
 
-// a manifold holds four, keep the widest spread or the patch stops resisting tipping
+// manifold holds four, keep widest spread or patch stops resisting tipping
 void BoxCollider::reducePoints(const math::Vec3* points, int count, CollisionInfo& outInfo)
 {
     if (count <= MAX_CONTACT_POINTS)
@@ -330,7 +312,7 @@ void BoxCollider::reducePoints(const math::Vec3* points, int count, CollisionInf
 
     bool taken[MAX_CLIP_POINTS]{};
 
-    // first the corner furthest out, then the one furthest from those already kept
+    // first corner furthest out, then one furthest from those already kept
     for (int picked = 0; picked < MAX_CONTACT_POINTS; picked++)
     {
         int best = -1;
@@ -394,10 +376,10 @@ bool BoxCollider::testCollisionWithGround(const GroundCollider& ground, Collisio
         return false;
     }
 
-    // a tilt of one degree already lifts the far corners past a fixed margin
+    // tilt of one degree already lifts far corners past fixed margin
     const double reach = std::max(CONTACT_MARGIN, m_size.length() * REST_TOLERANCE);
 
-    // every corner near the plane, flat face gives four and stops rocking
+    // every corner near plane, flat face gives four and stops rocking
     outInfo.pointCount = 0;
 
     math::Vec3 touching[8];
@@ -416,8 +398,7 @@ bool BoxCollider::testCollisionWithGround(const GroundCollider& ground, Collisio
     if (outInfo.pointCount > 0)
     {
         // box is first collider, normal points down into ground
-        outInfo.normal = math::Vec3{0.0, -1.0, 0.0};
-        outInfo.penetration = groundY - lowestY;
+        outInfo.setContact(math::Vec3{0.0, -1.0, 0.0}, groundY - lowestY);
 
         return true;
     }
@@ -437,7 +418,7 @@ bool BoxCollider::raycast(const Ray& ray, double& outDistance) const
         return false;
     }
 
-    // a ray starting inside leaves through the far face
+    // ray starting inside leaves through far face
     const double distance = (entry >= 0.0) ? entry : exit;
 
     if (distance < 0.0 || distance > ray.maxDistance)
@@ -454,13 +435,13 @@ bool BoxCollider::sweep(const Sweep& sweep, double& outDistance) const
     double entry = 0.0;
     double exit = 0.0;
 
-    // grown by the radius the sphere becomes a point, square corners catch it early
+    // grown by radius sphere becomes point, square corners catch it early
     if (!slab(sweep.origin, sweep.direction, sweep.radius, entry, exit))
     {
         return false;
     }
 
-    // behind, out of reach, or already overlapping at the start, none is a crossing
+    // behind, out of reach, or already overlapping at start, none is crossing
     if (entry < 0.0 || entry > sweep.distance)
     {
         return false;
@@ -480,7 +461,7 @@ double BoxCollider::thickness(const Ray& ray) const
         return 0.0;
     }
 
-    // a ray starting inside only has the part still ahead of it
+    // ray starting inside only has part still ahead of it
     return exit - std::max(entry, 0.0);
 }
 
@@ -491,7 +472,7 @@ math::Vec3 BoxCollider::normalAt(const math::Vec3& point) const
     const math::Vec3 half = m_size * 0.5;
     const math::Vec3 local = point - m_position;
 
-    // the face the point sits closest to owns the normal
+    // face point sits closest to owns normal
     int nearest = 0;
     double smallestGap = 1e30;
 
@@ -512,13 +493,13 @@ math::Vec3 BoxCollider::normalAt(const math::Vec3& point) const
 
 // helpers
 
-// where a line enters and leaves the box, grown by margin so a sphere can be swept as a point
+// where line enters and leaves box, grown by margin so sphere can be swept as point
 bool BoxCollider::slab(const math::Vec3& origin, const math::Vec3& direction, double margin, double& outEntry, double& outExit) const
 {
     const math::Vec3 half = m_size * 0.5;
     const math::Vec3 toCentre = m_position - origin;
 
-    // run in the box own axes, so a turned box needs no special case
+    // run in box own axes, so turned box needs no special case
     outEntry = -1e30;
     outExit = 1e30;
 

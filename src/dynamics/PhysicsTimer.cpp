@@ -28,7 +28,7 @@ int PhysicsTimer::consume(double frameTime)
 
     if (steps > m_maxSubSteps)
     {
-        // drop backlog, better slow motion for a moment than a stall
+        // drop backlog, better slow motion for moment than stall
         steps = m_maxSubSteps;
         m_accumulator = 0.0;
 

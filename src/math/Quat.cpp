@@ -88,7 +88,7 @@ Quat Quat::conjugated() const
 
 Vec3 Quat::rotate(const Vec3& v) const
 {
-    // v' = v + 2w(q x v) + 2(q x (q x v)), cheaper than building the matrix
+    // v' = v + 2w(q x v) + 2(q x (q x v)), cheaper than building matrix
     const Vec3 q{x, y, z};
     const Vec3 t = q.cross(v) * 2.0;
 

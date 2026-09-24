@@ -13,10 +13,10 @@ namespace dynamics {
 
 static constexpr double PENETRATION_SLOP = 0.002;       // overlap left alone, full correction twitches
 static constexpr double CORRECTION_RATE = 0.8;          // share of overlap removed per step
-static constexpr double RESTITUTION_THRESHOLD = 1.0;    // below this a contact stops bouncing
-static constexpr double WAKE_IMPULSE = 0.5;             // hit strong enough to wake a parked body
+static constexpr double RESTITUTION_THRESHOLD = 1.0;    // below this contact stops bouncing
+static constexpr double WAKE_IMPULSE = 0.5;             // hit strong enough to wake parked body
 
-// everything a contact needs to be solved, gathered once per manifold
+// everything contact needs to be solved, gathered once per manifold
 struct ContactFrame {
     RigidBody* a = nullptr;
     RigidBody* b = nullptr;
@@ -26,35 +26,52 @@ struct ContactFrame {
 
     collision::PhysicsMaterial material;
 
-    // nothing to solve when neither side can move
-    bool valid() const { return a && b && (a->getInverseMass() + b->getInverseMass()) > 0.0; }
+    // nothing to solve when neither side can give anywhere
+    bool valid() const
+    {
+        if (!a || !b)
+        {
+            return false;
+        }
 
-    // relative velocity of the two bodies where they touch
+        for (int axis = 0; axis < 3; axis++)
+        {
+            if (a->canMoveAlong(axis) || b->canMoveAlong(axis) || a->canTurnAround(axis) || b->canTurnAround(axis))
+            {
+                return true;
+            }
+        }
+
+        return false;
+    }
+
     math::Vec3 relativeVelocityAt(const math::Vec3& point) const
     {
         return b->getVelocityAt(point) - a->getVelocityAt(point);
     }
 
-    // resistance along the direction, contact further from centre turns easier
+    // frozen axis carries no impulse and must not lighten contact either
     double effectiveMass(const math::Vec3& direction, const math::Vec3& armA, const math::Vec3& armB) const
     {
-        const math::Vec3 angularA = (a->getInverseInertia() * armA.cross(direction)).cross(armA);
-        const math::Vec3 angularB = (b->getInverseInertia() * armB.cross(direction)).cross(armB);
+        const math::Vec3 linear = (a->getLinearMobility() + b->getLinearMobility()) * direction;
 
-        return a->getInverseMass() + b->getInverseMass() + direction.dot(angularA + angularB);
+        const math::Vec3 angularA = (a->getAngularMobility() * armA.cross(direction)).cross(armA);
+        const math::Vec3 angularB = (b->getAngularMobility() * armB.cross(direction)).cross(armB);
+
+        return direction.dot(linear + angularA + angularB);
     }
 
     void applyImpulse(const math::Vec3& armA, const math::Vec3& armB, const math::Vec3& impulse) const
     {
-        // only a real hit wakes a parked body, resting weight would keep it up
+        // only real hit wakes parked body, resting weight keeps it up otherwise
         if (impulse.length() > WAKE_IMPULSE)
         {
             a->wake();
             b->wake();
         }
 
-        a->applyImpulse(impulse * -a->getInverseMass(), a->getInverseInertia() * armA.cross(impulse) * -1.0);
-        b->applyImpulse(impulse * b->getInverseMass(), b->getInverseInertia() * armB.cross(impulse));
+        a->applyImpulse(a->getLinearMobility() * impulse * -1.0, a->getAngularMobility() * armA.cross(impulse) * -1.0);
+        b->applyImpulse(b->getLinearMobility() * impulse, b->getAngularMobility() * armB.cross(impulse));
     }
 };
 
@@ -62,7 +79,7 @@ static ContactFrame frameOf(const collision::Manifold& manifold)
 {
     ContactFrame frame;
 
-    // a trigger only reports the touch, nothing is pushed apart
+    // trigger only reports touch, pushes nothing apart
     if (manifold.colliderA->isTrigger() || manifold.colliderB->isTrigger())
     {
         return frame;
@@ -76,7 +93,7 @@ static ContactFrame frameOf(const collision::Manifold& manifold)
         manifold.colliderA->getMaterial(),
         manifold.colliderB->getMaterial());
 
-    // tangents from the normal alone, sliding velocity is noise on a resting patch
+    // tangents from normal alone, sliding velocity is noise on resting patch
     const math::Vec3 reference = (std::abs(frame.normal.x) < 0.9) ? math::Vec3{1.0, 0.0, 0.0} : math::Vec3{0.0, 1.0, 0.0};
 
     frame.tangents[0] = frame.normal.cross(reference).normalized();
@@ -101,7 +118,7 @@ void ContactSolver::prepare(std::vector<collision::Manifold>& manifolds) const
 
             const double approachSpeed = frame.relativeVelocityAt(point.position).dot(frame.normal);
 
-            // slow contact would bounce off its own noise
+            // slow contact bounces off its own noise
             point.targetSpeed = (-approachSpeed > RESTITUTION_THRESHOLD) ? -approachSpeed * frame.material.restitution : 0.0;
         }
     }
@@ -154,7 +171,7 @@ void ContactSolver::solveVelocity(collision::Manifold& manifold) const
 
         const double approachSpeed = frame.relativeVelocityAt(point.position).dot(frame.normal);
 
-        // clamp the total, a single step may well be negative
+        // clamp total, single step often comes out negative
         const double held = point.normalImpulse;
         point.normalImpulse = std::max(held + (point.targetSpeed - approachSpeed) / normalMass, 0.0);
 
@@ -196,17 +213,42 @@ void ContactSolver::correctPosition(const collision::Manifold& manifold) const
         return;
     }
 
+    // pinned pair still collides, just nowhere to push it
+    if (!manifold.info.correctable())
+    {
+        return;
+    }
+
     const double excess = manifold.info.penetration - PENETRATION_SLOP;
     if (excess <= 0.0)
     {
         return;
     }
 
-    const double inverseMassSum = frame.a->getInverseMass() + frame.b->getInverseMass();
-    const math::Vec3 separation = frame.normal * (excess * CORRECTION_RATE / inverseMassSum);
+    const math::Vec3 wanted = manifold.info.correction * (excess / manifold.info.penetration * CORRECTION_RATE);
 
-    frame.a->separate(separation * -frame.a->getInverseMass());
-    frame.b->separate(separation * frame.b->getInverseMass());
+    // each axis goes to bodies free to travel it, so what one cannot do other covers
+    math::Vec3 toA{};
+    math::Vec3 toB{};
+
+    for (int axis = 0; axis < 3; axis++)
+    {
+        const double weightA = manifold.info.mobility.first.axes[axis] ? frame.a->getInverseMass() : 0.0;
+        const double weightB = manifold.info.mobility.second.axes[axis] ? frame.b->getInverseMass() : 0.0;
+
+        const double total = weightA + weightB;
+
+        if (total <= 0.0)
+        {
+            continue;
+        }
+
+        toA[axis] = -wanted[axis] * weightA / total;
+        toB[axis] = wanted[axis] * weightB / total;
+    }
+
+    frame.a->separate(toA);
+    frame.b->separate(toB);
 }
 
 } // namespace dynamics

@@ -16,8 +16,8 @@ namespace dynamics {
 
 // defaults
 inline constexpr double DEFAULT_MASS = 1.0;
-inline constexpr double DEFAULT_LINEAR_DAMPING = 0.0;    // nothing slows a body in flight
-inline constexpr double DEFAULT_ANGULAR_DAMPING = 0.8;   // else a ball rolls forever
+inline constexpr double DEFAULT_LINEAR_DAMPING = 0.0;    // nothing slows body in flight
+inline constexpr double DEFAULT_ANGULAR_DAMPING = 0.8;   // else ball rolls forever
 
 // sleep
 inline constexpr double SLEEP_LINEAR_SPEED = 0.08;
@@ -30,7 +30,7 @@ enum class MotionType {
     Static        // never moves, holds everything else up
 };
 
-// axes the body is not allowed to move or turn along
+// axes body may not move or turn along
 using Constraints = uint32_t;
 
 inline constexpr Constraints CONSTRAIN_NONE = 0;
@@ -64,12 +64,13 @@ public:
     Constraints getConstraints() const { return m_constraints; }
     void setConstraints(Constraints constraints) { m_constraints = constraints; }
 
-    // degrees of freedom left to it, a still body has none whatever it was told
-    bool canMoveAlong(int axis) const
-    {
-        static constexpr Constraints FROZEN[3] = {FREEZE_POSITION_X, FREEZE_POSITION_Y, FREEZE_POSITION_Z};
-        return isMovable() && (m_constraints & FROZEN[axis]) == 0;
-    }
+    // freedom left to it, frozen axis answers as if body weighed everything
+
+    bool canMoveAlong(int axis) const;
+    bool canTurnAround(int axis) const;
+
+    math::Mat3 getLinearMobility() const;
+    math::Mat3 getAngularMobility() const;
 
     // mass
     double getMass() const { return m_mass; }
@@ -111,18 +112,17 @@ public:
     double getAngularDamping() const { return m_angularDamping; }
     void setAngularDamping(double damping) { m_angularDamping = std::max(damping, 0.0); }
 
-    // checked along the path it travels, for a body fast enough to pass through a wall
+    // checked along path it travels, for body fast enough to pass through wall
     bool isContinuous() const { return m_continuous; }
     void setContinuous(bool continuous) { m_continuous = continuous; }
 
-    // sleep, decided by the island the body belongs to
+    // sleep, decided by island body belongs to
     bool isSleeping() const { return m_sleeping; }
 
     void sleep();
     void wake() { m_sleeping = false; }
 
-    // solver side, moves the body without waking it, a resting pile would
-    // never settle otherwise
+    // solver side, moves body without waking it, else resting pile never settles
     void applyImpulse(const math::Vec3& linear, const math::Vec3& angular);
     void advance(double dt);
     void separate(const math::Vec3& offset);
@@ -140,7 +140,7 @@ public:
 private:
     void updateInverseInertiaWorld();
 
-    // zeroes whatever the constraints forbid
+    // zeroes whatever constraints forbid
     void applyConstraints(math::Vec3& linear, math::Vec3& angular) const;
 
     MotionType m_motionType = MotionType::Dynamic;

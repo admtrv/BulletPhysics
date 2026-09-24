@@ -35,16 +35,19 @@ void Collision::clear()
     m_colliders.clear();
 }
 
-// a pair parts along an axis as long as either side is still free to go there
-static void fillFreedom(const Collider& a, const Collider& b, CollisionInfo& info)
+// what shape can do about overlap, one held in place does nothing
+static collider::Mobility mobilityOf(const Collider& collider)
 {
-    const dynamics::RigidBody* first = a.getBody();
-    const dynamics::RigidBody* second = b.getBody();
+    const dynamics::RigidBody* body = collider.getBody();
+
+    collider::Mobility mobility;
 
     for (int axis = 0; axis < 3; axis++)
     {
-        info.freedom[axis] = (first && first->canMoveAlong(axis)) || (second && second->canMoveAlong(axis));
+        mobility.axes[axis] = body && body->canMoveAlong(axis);
     }
+
+    return mobility;
 }
 
 void Collision::detect(std::vector<Manifold>& manifolds)
@@ -63,14 +66,22 @@ void Collision::detect(std::vector<Manifold>& manifolds)
                 continue;
             }
 
+            const collider::PairMobility mobility{mobilityOf(*a), mobilityOf(*b)};
+
             CollisionInfo info;
-            fillFreedom(*a, *b, info);
+            info.mobility = mobility;
 
             if (a->testCollision(*b, info))
             {
                 manifolds.push_back({a, b, info});
+                continue;
             }
-            else if (b->testCollision(*a, info))
+
+            // failed test leaves marks behind, so other side starts clean
+            info = CollisionInfo{};
+            info.mobility = {mobility.second, mobility.first};
+
+            if (b->testCollision(*a, info))
             {
                 manifolds.push_back({b, a, info});
             }

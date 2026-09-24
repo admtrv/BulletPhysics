@@ -8,7 +8,7 @@ namespace BulletPhysics {
 namespace dynamics {
 
 inline constexpr double DEFAULT_TIME_STEP = 1.0 / 60.0;
-inline constexpr int DEFAULT_MAX_SUB_STEPS = 8;    // long frame would ask for even more
+inline constexpr int DEFAULT_MAX_SUB_STEPS = 8;    // long frame asks for even more
 
 // splits frame time into equal steps
 class PhysicsTimer {

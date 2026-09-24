@@ -19,7 +19,7 @@ void RigidBody::setMotionType(MotionType type)
         return;
     }
 
-    // both are unmovable by contacts, kinematic keeps its velocity
+    // both unmovable by contacts, kinematic keeps its velocity
     m_inverseMass = 0.0;
     m_inverseInertiaWorld = math::Mat3::zero();
 
@@ -101,10 +101,10 @@ void RigidBody::separate(const math::Vec3& offset)
 
 void RigidBody::advance(double dt)
 {
-    // whatever set the velocity, a frozen axis stops here
+    // whatever set velocity, frozen axis stops here
     applyConstraints(m_velocity, m_angularVelocity);
 
-    // semi-implicit euler, velocity of this step carries the body
+    // semi-implicit euler, velocity of this step carries body
     m_position += m_velocity * dt;
 
     // q' = q + 0.5 * w * q * dt, w as quaternion with zero scalar part
@@ -125,6 +125,82 @@ void RigidBody::clearForces()
 {
     m_forces = math::Vec3{};
     m_torque = math::Vec3{};
+}
+
+bool RigidBody::canMoveAlong(int axis) const
+{
+    static constexpr Constraints FROZEN[3] = {FREEZE_POSITION_X, FREEZE_POSITION_Y, FREEZE_POSITION_Z};
+
+    return isMovable() && (m_constraints & FROZEN[axis]) == 0;
+}
+
+bool RigidBody::canTurnAround(int axis) const
+{
+    static constexpr Constraints FROZEN[3] = {FREEZE_ROTATION_X, FREEZE_ROTATION_Y, FREEZE_ROTATION_Z};
+
+    return isMovable() && (m_constraints & FROZEN[axis]) == 0;
+}
+
+math::Mat3 RigidBody::getLinearMobility() const
+{
+    return math::Mat3::diagonal(canMoveAlong(0) ? m_inverseMass : 0.0,
+                                canMoveAlong(1) ? m_inverseMass : 0.0,
+                                canMoveAlong(2) ? m_inverseMass : 0.0);
+}
+
+// turned body couples world axes, so rows of inverse tensor cannot just be dropped,
+// inertia is cut to free axes and inverted there, holding rest rigid
+math::Mat3 RigidBody::getAngularMobility() const
+{
+    bool free[3];
+    int freeCount = 0;
+
+    for (int axis = 0; axis < 3; axis++)
+    {
+        free[axis] = canTurnAround(axis);
+        freeCount += free[axis] ? 1 : 0;
+    }
+
+    if (freeCount == 3)
+    {
+        return m_inverseInertiaWorld;
+    }
+
+    if (freeCount == 0)
+    {
+        return math::Mat3::zero();
+    }
+
+    const math::Mat3 inertia = m_inverseInertiaWorld.inverted();
+
+    // frozen rows and columns give way to identity, inverting whole then leaves
+    // free block inverted and rest to be wiped
+    math::Mat3 block;
+
+    for (int row = 0; row < 3; row++)
+    {
+        for (int column = 0; column < 3; column++)
+        {
+            const bool kept = free[row] && free[column];
+
+            block.rows[row][column] = kept ? inertia.rows[row][column] : (row == column ? 1.0 : 0.0);
+        }
+    }
+
+    math::Mat3 mobility = block.inverted();
+
+    for (int row = 0; row < 3; row++)
+    {
+        for (int column = 0; column < 3; column++)
+        {
+            if (!free[row] || !free[column])
+            {
+                mobility.rows[row][column] = 0.0;
+            }
+        }
+    }
+
+    return mobility;
 }
 
 void RigidBody::updateInverseInertiaWorld()

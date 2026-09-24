@@ -30,13 +30,13 @@ bool GroundCollider::testCollision(const Collider& other, CollisionInfo& outInfo
             return testCollisionWithSphere(static_cast<const SphereCollider&>(other), outInfo);
         }
         case CollisionShape::Cylinder: {
-            // cylinder does the test, flip normal to point up from ground
+            // cylinder does test, flip normal to point up from ground
             if (!static_cast<const CylinderCollider&>(other).testCollisionWithGround(*this, outInfo))
             {
                 return false;
             }
 
-            outInfo.normal = outInfo.normal * -1.0;
+            outInfo.reverse();
             return true;
         }
         case CollisionShape::Ground: {
@@ -51,25 +51,25 @@ bool GroundCollider::testCollision(const Collider& other, CollisionInfo& outInfo
 
 bool GroundCollider::testCollisionWithBox(const BoxCollider& box, CollisionInfo& outInfo) const
 {
-    // box does the test, flip normal to point up from ground
+    // box does test, flip normal to point up from ground
     if (!box.testCollisionWithGround(*this, outInfo))
     {
         return false;
     }
 
-    outInfo.normal = outInfo.normal * -1.0;
+    outInfo.reverse();
     return true;
 }
 
 bool GroundCollider::testCollisionWithSphere(const SphereCollider& sphere, CollisionInfo& outInfo) const
 {
-    // sphere does the test, flip normal to point up from ground
+    // sphere does test, flip normal to point up from ground
     if (!sphere.testCollisionWithGround(*this, outInfo))
     {
         return false;
     }
 
-    outInfo.normal = outInfo.normal * -1.0;
+    outInfo.reverse();
     return true;
 }
 
@@ -77,7 +77,7 @@ bool GroundCollider::testCollisionWithSphere(const SphereCollider& sphere, Colli
 
 bool GroundCollider::raycast(const Ray& ray, double& outDistance) const
 {
-    // parallel rays never reach the plane
+    // parallel rays never reach plane
     if (std::abs(ray.direction.y) < 1e-9)
     {
         return false;
@@ -96,10 +96,10 @@ bool GroundCollider::raycast(const Ray& ray, double& outDistance) const
 
 bool GroundCollider::sweep(const Sweep& sweep, double& outDistance) const
 {
-    // a sphere touches the plane once its centre is one radius above it
+    // sphere touches plane once its centre is one radius above it
     const double height = sweep.origin.y - (m_position.y + sweep.radius);
 
-    // already touching at the start, that is for the usual test to resolve
+    // already touching at start, usual test resolves that
     if (height <= 0.0)
     {
         return false;
@@ -124,7 +124,7 @@ bool GroundCollider::sweep(const Sweep& sweep, double& outDistance) const
 
 double GroundCollider::thickness(const Ray& ray) const
 {
-    // solid all the way down, nothing gets through
+    // solid all way down, nothing gets through
     return 1e30;
 }
 

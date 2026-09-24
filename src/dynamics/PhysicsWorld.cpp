@@ -38,7 +38,7 @@ void PhysicsWorld::step(double dt)
     syncColliders();
     reportContacts();
 
-    // islands are rebuilt from this step contacts, a pile sleeps as one piece
+    // islands rebuilt from this step contacts, pile sleeps as one piece
     m_islands.build(m_bodies, m_manifolds);
     m_islands.updateSleep(dt);
 }
@@ -47,7 +47,7 @@ void PhysicsWorld::integrateForces(double dt)
 {
     for (RigidBody* body : m_bodies)
     {
-        // kinematic bodies carry the velocity they were given, nothing acts on them
+        // kinematic bodies carry given velocity, nothing acts on them
         if (!body->isDynamic() || body->isSleeping())
         {
             continue;
@@ -96,13 +96,13 @@ void PhysicsWorld::sweepFast(double dt)
 
         const double radius = collider->boundingRadius();
 
-        // a step shorter than the narrowest way through cannot skip anything, the usual test sees it
+        // step shorter than narrowest way through cannot skip anything, usual test sees it
         if (distance < collider->thinnestExtent())
         {
             continue;
         }
 
-        // where it stood before this step, the sweep starts from there
+        // where it stood before this step, sweep starts from there
         const math::Vec3 from = body->getPosition() - travel;
 
         const collision::Sweep query{from, travel * (1.0 / distance), distance, radius};
@@ -113,7 +113,7 @@ void PhysicsWorld::sweepFast(double dt)
             continue;
         }
 
-        // pull it back to the touch, the solver takes the contact from there
+        // pull it back to touch, solver takes contact from there
         body->separate(from + query.direction * hit.distance - body->getPosition());
 
         collider->setPosition(body->getPosition());
@@ -135,7 +135,7 @@ void PhysicsWorld::solveVelocity()
     m_solver.prepare(m_manifolds);
     m_solver.warmStart(m_manifolds);
 
-    // impulses accumulate over the passes, each contact sees what the others held
+    // impulses accumulate over passes, each contact sees what others held
     for (int iteration = 0; iteration < m_solverIterations; iteration++)
     {
         for (auto& manifold : m_manifolds)
@@ -155,7 +155,7 @@ void PhysicsWorld::solvePosition()
 
 // helpers
 
-// a pair is the same contact as long as both colliders match
+// pair is same contact as long as both colliders match
 static bool samePair(const collision::Manifold& a, const collision::Manifold& b)
 {
     return a.colliderA == b.colliderA && a.colliderB == b.colliderB;
@@ -203,7 +203,7 @@ void PhysicsWorld::syncColliders()
     {
         const RigidBody* body = collider->getBody();
 
-        // one without a body stands where it was put, nothing carries it
+        // one without body stands where put, nothing carries it
         if (body)
         {
             collider->place(body->getPosition(), body->getOrientation());
@@ -224,7 +224,7 @@ void PhysicsWorld::carryImpulses()
             continue;
         }
 
-        // matched by what produced them, their order shifts as the bodies turn
+        // matched by what produced them, order shifts as bodies turn
         for (int i = 0; i < manifold.info.pointCount; i++)
         {
             auto& point = manifold.info.points[i];
@@ -282,7 +282,7 @@ bool PhysicsWorld::raycast(const collision::Ray& ray, collision::RayHit& outHit,
 
     outHit.normal = outHit.collider->normalAt(outHit.point);
 
-    // always face the ray, a ray starting inside would get the far side otherwise
+    // always face ray, one starting inside gets far side otherwise
     if (outHit.normal.dot(ray.direction) > 0.0)
     {
         outHit.normal = outHit.normal * -1.0;
@@ -306,7 +306,7 @@ bool PhysicsWorld::sweep(const collision::Sweep& sweep, collision::SweepHit& out
             continue;
         }
 
-        // the pair still has to accept each other, a sweep is no way around the layers
+        // pair still has to accept each other, sweep is no way around layers
         if (ignore && !ignore->collidesWith(*collider))
         {
             continue;
@@ -329,7 +329,7 @@ bool PhysicsWorld::sweep(const collision::Sweep& sweep, collision::SweepHit& out
         return false;
     }
 
-    // the sphere centre where it stopped, the surface is one radius closer
+    // sphere centre where it stopped, surface is one radius closer
     const math::Vec3 centre = sweep.origin + sweep.direction * outHit.distance;
 
     outHit.normal = outHit.collider->normalAt(centre);
@@ -348,7 +348,7 @@ bool PhysicsWorld::sweep(const collision::Sweep& sweep, collision::SweepHit& out
 
 void PhysicsWorld::addBody(RigidBody* body, collision::collider::Collider* collider)
 {
-    // a body listed twice would be integrated twice
+    // body listed twice integrates twice
     if (!body || std::find(m_bodies.begin(), m_bodies.end(), body) != m_bodies.end())
     {
         return;

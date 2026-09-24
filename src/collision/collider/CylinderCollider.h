@@ -18,7 +18,7 @@ class BoxCollider;
 class SphereCollider;
 class GroundCollider;
 
-// round shape with flat caps, standing along its local y
+// round shape with flat caps, stands along its local y
 class CylinderCollider : public Collider {
 public:
     explicit CylinderCollider(double radius = 0.5, double height = 1.0);

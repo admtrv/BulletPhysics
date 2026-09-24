@@ -13,7 +13,7 @@ namespace collider {
 class BoxCollider;
 class SphereCollider;
 
-// represents an infinite ground plane (similar to WorldBoundaryShape2D in Godot)
+// infinite ground plane
 class GroundCollider : public Collider {
 public:
     explicit GroundCollider(double groundY = 0.0);
@@ -22,7 +22,7 @@ public:
 
     // position
     const math::Vec3& getPosition() const override { return m_position; }
-    void setPosition(const math::Vec3& pos) override;   // only the height is kept
+    void setPosition(const math::Vec3& pos) override;   // keeps height only
     bool isOrientable() const override { return false; }
 
     // ground y
@@ -40,7 +40,7 @@ public:
     double thickness(const Ray& ray) const override;
 
     // shape
-    double boundingRadius() const override { return 1e30; }   // a plane has no bound
+    double boundingRadius() const override { return 1e30; }   // plane has no bound
     math::Mat3 inverseInertia(double) const override { return math::Mat3::zero(); }   // never turns
     math::Vec3 normalAt(const math::Vec3& point) const override { return {0.0, 1.0, 0.0}; }
 

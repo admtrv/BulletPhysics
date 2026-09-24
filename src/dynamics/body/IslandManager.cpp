@@ -16,8 +16,7 @@ void IslandManager::build(const std::vector<RigidBody*>& bodies, const std::vect
     m_bodies.clear();
     m_index.clear();
 
-    // static and kinematic bodies join no island, they would tie the whole scene
-    // into one group through the ground
+    // static and kinematic bodies join no island, they tie whole scene into one group through ground
     for (RigidBody* body : bodies)
     {
         if (!body->isDynamic())
@@ -48,7 +47,7 @@ void IslandManager::build(const std::vector<RigidBody*>& bodies, const std::vect
         m_parent[rootOf(a->second)] = rootOf(b->second);
     }
 
-    // collect the sets, the root of each one names its island
+    // collect sets, root of each one names its island
     std::unordered_map<int, size_t> islandOf;
     m_islands.clear();
 
@@ -66,8 +65,8 @@ void IslandManager::build(const std::vector<RigidBody*>& bodies, const std::vect
         m_islands[found->second].bodies.insert(m_bodies[i]);
     }
 
-    // an island carries on the stillness of the bodies it took in, and one whose
-    // company changed starts over, the box it rested on may have just left
+    // island carries on stillness of bodies it took in, one whose company changed
+    // starts over, box it rested on just left
     std::unordered_map<const RigidBody*, Members> company;
     std::unordered_map<const RigidBody*, Supports> supports;
 
@@ -154,7 +153,7 @@ int IslandManager::rootOf(int index)
 {
     while (m_parent[index] != index)
     {
-        // path halving keeps the trees flat without a second pass
+        // path halving keeps trees flat without second pass
         m_parent[index] = m_parent[m_parent[index]];
         index = m_parent[index];
     }
@@ -162,7 +161,7 @@ int IslandManager::rootOf(int index)
     return index;
 }
 
-// static bodies the island touches, with the pose they were touched at
+// static bodies island touches, with pose at time of touch
 IslandManager::Supports IslandManager::supportsOf(const Members& bodies, const std::vector<collision::Manifold>& contacts) const
 {
     Supports supports;

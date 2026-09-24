@@ -32,7 +32,7 @@ public:
     void addBody(RigidBody* body, collision::collider::Collider* collider = nullptr);   // no collider means no contacts
     void removeBody(RigidBody* body);
 
-    // a shape without a body stands still and is only collided against
+    // shape without body stands still and is only collided against
     void addCollider(collision::collider::Collider* collider);
     void removeCollider(collision::collider::Collider* collider);
 
@@ -62,7 +62,7 @@ public:
     size_t getBodyCount() const { return m_bodies.size(); }
 
 private:
-    // step phases, in the order step runs them
+    // step phases, in order step runs them
     void integrateForces(double dt);
     void integratePoses(double dt);
     void syncColliders();

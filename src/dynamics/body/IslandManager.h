@@ -21,7 +21,7 @@ class IslandManager {
 public:
     void build(const std::vector<RigidBody*>& bodies, const std::vector<collision::Manifold>& contacts);
 
-    // parks islands that stood still long enough, wakes the rest
+    // parks islands that stood still long enough, wakes rest
     void updateSleep(double dt);
 
     void wake(RigidBody* body);
@@ -29,7 +29,7 @@ public:
 private:
     using Members = std::unordered_set<RigidBody*>;
 
-    // a static neighbour never joins an island, its pose is watched instead
+    // static neighbour never joins island, watched by pose instead
     struct Support {
         const RigidBody* body = nullptr;
         math::Vec3 position{};
@@ -49,15 +49,15 @@ private:
 
     std::vector<Island> m_islands;
 
-    // union-find over the body list, contacts merge the sets
+    // union-find over body list, contacts merge sets
     std::vector<int> m_parent;
     std::vector<RigidBody*> m_bodies;
     std::unordered_map<const RigidBody*, int> m_index;
 
-    // carried across steps by the bodies, an island itself lives one step
+    // carried across steps by bodies, island itself lives one step
     std::unordered_map<const RigidBody*, double> m_stillTime;
 
-    // company of last step, a changed one means support was lost or gained
+    // company of last step, changed one means support lost or gained
     std::unordered_map<const RigidBody*, Members> m_company;
     std::unordered_map<const RigidBody*, Supports> m_supports;
 };

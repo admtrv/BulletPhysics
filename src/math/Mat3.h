@@ -19,11 +19,15 @@ struct Mat3 {
     static Mat3 diagonal(double x, double y, double z);
     static Mat3 zero();
 
+    Mat3 operator+(const Mat3& rhs) const;
+
     Mat3 operator*(const Mat3& rhs) const;
     Vec3 operator*(const Vec3& v) const;
     Mat3 operator*(double scalar) const;
 
     Mat3 transposed() const;
+
+    Mat3 inverted() const;      // zero matrix when it cannot be inverted
 };
 
 } // namespace math

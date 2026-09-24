@@ -33,13 +33,13 @@ bool SphereCollider::testCollision(const Collider& other, CollisionInfo& outInfo
 
         case CollisionShape::Cylinder:
         {
-            // cylinder does the test, flip normal to point away from us
+            // cylinder does test, flip normal to point away from us
             if (!static_cast<const CylinderCollider&>(other).testCollisionWithSphere(*this, outInfo))
             {
                 return false;
             }
 
-            outInfo.normal = outInfo.normal * -1.0;
+            outInfo.reverse();
             return true;
         }
 
@@ -64,8 +64,7 @@ bool SphereCollider::testCollisionWithSphere(const SphereCollider& sphere, Colli
     }
 
     // concentric spheres have no direction, pick one
-    outInfo.normal = (distance > 1e-9) ? diff * (1.0 / distance) : math::Vec3{0.0, 1.0, 0.0};
-    outInfo.penetration = contactDistance - distance;
+    outInfo.setContact((distance > 1e-9) ? diff * (1.0 / distance) : math::Vec3{0.0, 1.0, 0.0}, contactDistance - distance);
 
     outInfo.pointCount = 0;
     outInfo.addPoint(m_position + outInfo.normal * (m_radius - outInfo.penetration * 0.5), 0);
@@ -101,8 +100,7 @@ bool SphereCollider::testCollisionWithBox(const BoxCollider& box, CollisionInfo&
 
     if (distance > 1e-9)
     {
-        outInfo.normal = diff * (1.0 / distance);
-        outInfo.penetration = m_radius - distance;
+        outInfo.setContact(diff * (1.0 / distance), m_radius - distance);
         outInfo.pointCount = 0;
         outInfo.addPoint(closest, 0);
         return true;
@@ -126,8 +124,7 @@ bool SphereCollider::testCollisionWithBox(const BoxCollider& box, CollisionInfo&
 
     const double sign = (local[shallowest] >= 0.0) ? 1.0 : -1.0;
 
-    outInfo.normal = axes[shallowest] * sign;
-    outInfo.penetration = m_radius + smallestGap;
+    outInfo.setContact(axes[shallowest] * sign, m_radius + smallestGap);
     outInfo.pointCount = 0;
     outInfo.addPoint(closest, 0);
 
@@ -145,8 +142,7 @@ bool SphereCollider::testCollisionWithGround(const GroundCollider& ground, Colli
     }
 
     // sphere is first collider, normal points down into ground
-    outInfo.normal = math::Vec3{0.0, -1.0, 0.0};
-    outInfo.penetration = groundY - lowest;
+    outInfo.setContact(math::Vec3{0.0, -1.0, 0.0}, groundY - lowest);
 
     outInfo.pointCount = 0;
     outInfo.addPoint({m_position.x, groundY, m_position.z}, 0);
@@ -166,7 +162,7 @@ bool SphereCollider::raycast(const Ray& ray, double& outDistance) const
         return false;
     }
 
-    // near side first, far side when the ray starts inside
+    // near side first, far side when ray starts inside
     const double distance = (entry >= 0.0) ? entry : exit;
 
     if (distance < 0.0 || distance > ray.maxDistance)
@@ -183,13 +179,13 @@ bool SphereCollider::sweep(const Sweep& sweep, double& outDistance) const
     double entry = 0.0;
     double exit = 0.0;
 
-    // sphere against sphere, the sum of the radii is exact, no corners to round off
+    // sphere against sphere, sum of radii is exact, no corners to round off
     if (!span(sweep.origin, sweep.direction, sweep.radius, entry, exit))
     {
         return false;
     }
 
-    // behind, out of reach, or already overlapping at the start, none is a crossing
+    // behind, out of reach, or already overlapping at start, none is crossing
     if (entry < 0.0 || entry > sweep.distance)
     {
         return false;
@@ -209,7 +205,7 @@ double SphereCollider::thickness(const Ray& ray) const
         return 0.0;
     }
 
-    // a ray starting inside only has the part still ahead of it
+    // ray starting inside only has part still ahead of it
     return exit - std::max(entry, 0.0);
 }
 
@@ -222,7 +218,7 @@ math::Vec3 SphereCollider::normalAt(const math::Vec3& point) const
 
 // helpers
 
-// where a line enters and leaves the sphere, grown by margin so a swept sphere becomes a point
+// where line enters and leaves sphere, grown by margin so swept sphere becomes point
 bool SphereCollider::span(const math::Vec3& origin, const math::Vec3& direction, double margin, double& outEntry, double& outExit) const
 {
     const math::Vec3 toCentre = m_position - origin;

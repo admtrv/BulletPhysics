@@ -27,13 +27,13 @@ struct RayHit {
     collider::Collider* collider = nullptr;
 
     math::Vec3 point{};
-    math::Vec3 normal{};        // surface normal at the hit, faces the ray
+    math::Vec3 normal{};        // surface normal at hit, faces ray
     double distance = 0.0;
 };
 
 // sweep
 
-// sphere carried along a path, what a fast body sweeps through between steps
+// sphere carried along path, what fast body sweeps through between steps
 struct Sweep {
     math::Vec3 origin{};
     math::Vec3 direction{0.0, -1.0, 0.0};   // expected to be unit length
@@ -44,8 +44,8 @@ struct Sweep {
 struct SweepHit {
     collider::Collider* collider = nullptr;
 
-    math::Vec3 point{};         // on the surface, not the sphere centre
-    math::Vec3 normal{};        // surface normal at the hit, faces the sweep
+    math::Vec3 point{};         // on surface, not sphere centre
+    math::Vec3 normal{};        // surface normal at hit, faces sweep
     double distance = 0.0;      // travelled before touching
 };
 

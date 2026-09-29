@@ -6,6 +6,6 @@
 
 namespace BulletPhysics {
 
-inline constexpr const char* VERSION = "1.5.0";
+inline constexpr const char* VERSION = "1.5.1";
 
 } // namespace BulletPhysics

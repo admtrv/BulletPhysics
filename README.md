@@ -23,6 +23,10 @@ Until now it grew on its own, in a vacuum, though always with the game engine in
 - **Continuous detection** sweeps the path a fast body travels between steps
 - **Triggers** report overlap without resolving it
 
+## Dependencies
+
+Requires C++20 and has no external dependencies.
+
 ## Structure
 
 ```

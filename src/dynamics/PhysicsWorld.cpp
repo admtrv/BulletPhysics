@@ -356,14 +356,18 @@ void PhysicsWorld::addBody(RigidBody* body, collision::collider::Collider* colli
 
     m_bodies.push_back(body);
 
-    if (collider)
+    if (!collider)
     {
-        collider->setBody(body);
-        collider->setPosition(body->getPosition());
-        collider->setOrientation(body->getOrientation());
+        return;
+    }
 
+    collider->setBody(body);
+    collider->place(body->getPosition(), body->getOrientation());
+
+    // shape may already stand here on its own, then it only gains a body to follow
+    if (m_listed.insert(collider).second)
+    {
         m_colliders.push_back(collider);
-        m_listed.insert(collider);
         m_collision.addCollider(collider);
     }
 }
@@ -401,20 +405,14 @@ void PhysicsWorld::removeBody(RigidBody* body)
         m_bodies.erase(it);
     }
 
-    const auto detached = std::remove_if(m_colliders.begin(), m_colliders.end(), [this, body](auto* collider) {
-        if (collider->getBody() != body)
+    // shape outlives body it followed, left pointing at freed memory otherwise
+    for (collision::collider::Collider* collider : m_colliders)
+    {
+        if (collider->getBody() == body)
         {
-            return false;
+            collider->setBody(nullptr);
         }
-
-        m_collision.removeCollider(collider);
-        m_listed.erase(collider);
-        collider->setBody(nullptr);
-
-        return true;
-    });
-
-    m_colliders.erase(detached, m_colliders.end());
+    }
 }
 
 void PhysicsWorld::clear()
